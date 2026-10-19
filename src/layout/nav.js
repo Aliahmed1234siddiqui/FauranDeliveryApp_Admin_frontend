@@ -21,7 +21,7 @@ export const NAV = [
     label: 'Catalog',
     items: [
       { to: '/products', label: 'Products', icon: Package, perm: ['products'], badge: 'products' },
-      { to: '/categories', label: 'Categories', icon: Tags, perm: ['catalog'] },
+      { to: '/categories', label: 'Categories', icon: Tags, perm: ['catalog', 'products'] },
       { to: '/master-catalog', label: 'Master catalog', icon: LibraryBig, perm: ['catalog', 'products'] },
       { to: '/inventory', label: 'Inventory', icon: Boxes, perm: ['inventory'] },
     ],
@@ -35,7 +35,7 @@ export const NAV = [
   },
   {
     label: 'Insights',
-    items: [{ to: '/reports', label: 'Reports', icon: ChartColumnBig, perm: ['reports'] }],
+    items: [{ to: '/reports', label: 'Reports', icon: ChartColumnBig, perm: ['reports', 'inventory'] }],
   },
   {
     label: 'Administration',

@@ -2,12 +2,11 @@ import { useState } from 'react';
 import { ArrowRight, Eye, EyeOff, Lock, Mail, ShieldCheck, Zap } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { Button, Field } from '../ui/primitives';
-import { USE_MOCK } from '../services/adminApi';
 
 export default function Login() {
   const { login } = useAuth();
-  const [identifier, setIdentifier] = useState(USE_MOCK ? 'arsalan@fauran.pk' : '');
-  const [password, setPassword] = useState(USE_MOCK ? 'password' : '');
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(true);
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
@@ -37,9 +36,9 @@ export default function Login() {
           <p>Approve stores and riders, follow every order, settle payouts and keep the catalog clean, all in a few clicks.</p>
         </div>
         <div className="login-cards">
-          <div><strong>10 min</strong><span>Average drop time</span></div>
-          <div><strong>42</strong><span>Live stores</span></div>
-          <div><strong>18.4k</strong><span>Happy customers</span></div>
+          <div><strong>Approvals</strong><span>Stores, riders and products</span></div>
+          <div><strong>Live map</strong><span>Every online rider</span></div>
+          <div><strong>Payouts</strong><span>Vendor and rider balances</span></div>
         </div>
       </section>
 
@@ -70,8 +69,7 @@ export default function Login() {
             {error && <div className="callout callout-danger">{error}</div>}
             <div className="login-row">
               <label className="checkbox"><input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> Keep me signed in</label>
-              <button type="button" className="link-btn">Forgot password?</button>
-            </div>
+                          </div>
             <Button type="submit" size="lg" loading={loading} iconRight={ArrowRight}>Sign in</Button>
           </form>
           <div className="login-foot">

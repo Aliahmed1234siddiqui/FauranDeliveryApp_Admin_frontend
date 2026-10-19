@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 
-// Load data from an adminApi call. Re-runs when `deps` change; `reload()` re-fetches.
+// Load data from a services/api call. Re-runs when `deps` change; `reload()` re-fetches.
 export function useApi(fn, deps = []) {
   const [state, setState] = useState({ data: null, loading: true, error: null });
   const [tick, setTick] = useState(0);

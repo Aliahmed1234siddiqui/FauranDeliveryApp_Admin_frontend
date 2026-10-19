@@ -1,29 +1,30 @@
 import { useState } from 'react';
-import { Clock, Mail, MapPin, Phone } from 'lucide-react';
+import { Ban, Clock, Mail, MapPin, Phone } from 'lucide-react';
 import { useAction, useApi } from '../lib/hooks';
-import { useRouter } from '../lib/router';
-import { adminApi } from '../services/adminApi';
+import { Link, useRouter } from '../lib/router';
+import { customersApi } from '../services/api';
 import { date, money, num, timeAgo } from '../lib/format';
-import { Avatar, Badge, Card, Code, ErrorState, KeyValue, StatusBadge, Toggle } from '../ui/primitives';
+import { Avatar, Badge, Card, Code, EmptyState, ErrorState, KeyValue, StatusBadge, Toggle } from '../ui/primitives';
 import { ConfirmDialog } from '../ui/overlays';
 import { BackLink, DetailSkeleton } from './shared';
 
 export default function CustomerDetail({ params }) {
-  const { navigate } = useRouter();
-  const { data: c, loading, error, reload, setData } = useApi(() => adminApi.getCustomerById(params.id), [params.id]);
+  const { data, loading, error, reload } = useApi(() => customersApi.get(params.id), [params.id]);
   const [run, pending] = useAction();
-  const [confirm, setConfirm] = useState(null);
+  const [blocking, setBlocking] = useState(false);
 
-  if (loading && !c) return <DetailSkeleton />;
-  if (error) return <ErrorState error={error} onRetry={reload} />;
+  if (loading && !data) return <DetailSkeleton />;
+  if (error && !data) return <ErrorState error={error} onRetry={reload} />;
 
-  const setStatus = (isActive) => run(() => adminApi.setCustomerStatus(c._id, isActive), { success: isActive ? 'Account reactivated' : 'Account suspended' })
-    .then((u) => { setData((d) => ({ ...d, isActive: u.isActive })); setConfirm(null); }).catch(() => {});
-  const setCod = (codEnabled) => run(() => adminApi.setCustomerCod(c._id, codEnabled), { success: codEnabled ? 'Cash on delivery enabled' : 'Cash on delivery disabled' })
-    .then((u) => setData((d) => ({ ...d, codEnabled: u.codEnabled }))).catch(() => {});
+  const { customer: c, stats, addresses, orders } = data;
 
-  const aov = c.totalOrders ? c.totalSpent / c.totalOrders : 0;
-  const cancelRate = c.totalOrders ? (c.cancelledOrders / c.totalOrders) * 100 : 0;
+  const setActive = (isActive, reason) => run(() => customersApi.setActive(c._id, isActive, reason || undefined), { success: isActive ? 'Account unblocked' : 'Account blocked' })
+    .then(() => { setBlocking(false); reload(); }).catch(() => {});
+  const setCodAllowed = (allowed) => run(() => customersApi.setCodBlocked(c._id, !allowed), { success: allowed ? 'Cash on delivery re-allowed' : 'Customer can now only pay by card' })
+    .then(reload).catch(() => {});
+
+  const aov = stats.totalOrders ? stats.totalSpent / stats.totalOrders : 0;
+  const cancelRate = stats.totalOrders ? (stats.cancelledOrders / stats.totalOrders) * 100 : 0;
 
   return (
     <>
@@ -32,11 +33,16 @@ export default function CustomerDetail({ params }) {
         <div className="profile-card">
           <Avatar name={c.name} size="lg" />
           <div>
-            <div className="row row-wrap"><h2>{c.name}</h2><StatusBadge status={c.isActive ? 'active' : 'blocked'} />{!c.codEnabled && <Badge tone="warning">COD off</Badge>}</div>
+            <div className="row row-wrap">
+              <h2>{c.name}</h2>
+              <StatusBadge status={c.isActive ? 'active' : 'blocked'} />
+              {c.isVerified && <Badge tone="info">Verified</Badge>}
+              {c.codBlocked && <Badge tone="warning">Card only</Badge>}
+            </div>
             <p>
               <span><Code>{c.customerId}</Code></span>
               <span><Phone size={14} /> {c.phone}</span>
-              <span><Mail size={14} /> {c.email}</span>
+              {c.email && <span><Mail size={14} /> {c.email}</span>}
               <span><Clock size={14} /> Customer since {date(c.createdAt)}</span>
             </p>
           </div>
@@ -46,59 +52,97 @@ export default function CustomerDetail({ params }) {
       <div className="grid grid-side">
         <div className="stack">
           <div className="mini-stats">
-            <div className="mini-stat"><span>Orders</span><strong>{num(c.totalOrders)}</strong></div>
-            <div className="mini-stat"><span>Lifetime spend</span><strong>{money(c.totalSpent)}</strong></div>
+            <div className="mini-stat"><span>Orders</span><strong>{num(stats.totalOrders)}</strong></div>
+            <div className="mini-stat"><span>Lifetime spend</span><strong>{money(stats.totalSpent)}</strong></div>
             <div className="mini-stat"><span>Avg. basket</span><strong>{money(aov)}</strong></div>
             <div className="mini-stat"><span>Cancellation rate</span><strong className={cancelRate > 15 ? 'neg' : ''}>{cancelRate.toFixed(0)}%</strong></div>
           </div>
-          <Card title="Order history" className="card-flush">
-            <div className="table-scroll" style={{ marginTop: 12 }}>
-              <table className="table">
-                <thead><tr><th>Order</th><th>Store</th><th>Total</th><th>Status</th><th className="hide-sm">Placed</th></tr></thead>
-                <tbody>
-                  {c.recentOrders.length === 0 && <tr><td colSpan={5} className="muted" style={{ textAlign: 'center', padding: 28 }}>No orders yet</td></tr>}
-                  {c.recentOrders.map((o) => (
-                    <tr key={o._id} className="is-clickable" onClick={() => navigate(`/orders/${o.orderId}`)}>
-                      <td><Code>{o.orderId}</Code></td>
-                      <td className="cell-strong">{o.vendor.storeName}</td>
-                      <td>{money(o.total)}</td>
-                      <td><StatusBadge status={o.status} /></td>
-                      <td className="hide-sm">{timeAgo(o.createdAt)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
+          <OrderHistory orders={orders} customerId={c._id} />
         </div>
         <div className="stack">
           <Card title="Account controls" subtitle="Changes take effect immediately in the customer app">
             <div className="stack" style={{ gap: 18 }}>
-              <Toggle label="Account active" description={c.isActive ? 'Customer can browse and order.' : 'Customer is signed out and blocked.'} checked={c.isActive} disabled={pending} onChange={(v) => (v ? setStatus(true) : setConfirm('suspend'))} />
+              <Toggle label="Account active" description={c.isActive ? 'Customer can browse and order.' : 'Customer is signed out and blocked.'} checked={c.isActive} disabled={pending} onChange={(v) => (v ? setActive(true) : setBlocking(true))} />
               <hr />
-              <Toggle label="Allow cash on delivery" description={cancelRate > 15 ? 'High cancellation rate - consider disabling COD.' : 'Turn off to require card or wallet payment.'} checked={c.codEnabled} disabled={pending} onChange={setCod} />
+              <Toggle
+                label="Allow cash on delivery"
+                description={c.codBlocked
+                  ? `Card only after ${num(c.failedCodDeliveries)} failed COD deliver${c.failedCodDeliveries === 1 ? 'y' : 'ies'}. Re-allowing resets the count.`
+                  : 'Turn off to require card payment.'}
+                checked={!c.codBlocked}
+                disabled={pending}
+                onChange={setCodAllowed}
+              />
             </div>
           </Card>
           <Card title="Saved addresses">
-            <div className="list">
-              {c.addresses.map((a) => <div key={a} className="list-item"><span className="identity-icon"><MapPin size={16} /></span><span className="text-2">{a}</span></div>)}
-            </div>
+            {addresses.length ? (
+              <div className="list">
+                {addresses.map((a) => (
+                  <div key={a.addressId} className="list-item">
+                    <span className="identity-icon"><MapPin size={16} /></span>
+                    <span className="text-2">
+                      {a.label && <strong>{a.label} </strong>}
+                      {[a.addressLine, a.city].filter(Boolean).join(', ')}
+                      {a.isDefault && <> <Badge tone="brand">Default</Badge></>}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : <EmptyState icon={MapPin} title="No saved addresses" />}
           </Card>
           <Card title="Details">
-            <KeyValue columns={1} items={[['Last order', timeAgo(c.lastOrderAt)], ['Cancelled orders', num(c.cancelledOrders)]]} />
+            <KeyValue
+              columns={1}
+              items={[
+                ['Last order', timeAgo(stats.lastOrderAt)],
+                ['Delivered orders', num(stats.deliveredOrders)],
+                ['Cancelled orders', num(stats.cancelledOrders)],
+                ['Failed COD deliveries', num(c.failedCodDeliveries)],
+              ]}
+            />
           </Card>
         </div>
       </div>
 
       <ConfirmDialog
-        open={confirm === 'suspend'}
-        onClose={() => setConfirm(null)}
-        onConfirm={() => setStatus(false)}
+        open={blocking}
+        onClose={() => setBlocking(false)}
+        onConfirm={(reason) => setActive(false, reason)}
         loading={pending}
-        title={`Suspend ${c.name}?`}
-        description="They'll be signed out of the customer app and can't place orders until you reactivate the account."
-        confirmLabel="Suspend account"
+        icon={Ban}
+        title={`Block ${c.name}?`}
+        description="They'll be signed out of the customer app and can't place orders until you unblock the account. The reason is sent in their notification."
+        confirmLabel="Block account"
+        reason
+        reasonLabel="Reason (optional)"
+        reasonPlaceholder="e.g. Repeated failed cash deliveries"
       />
     </>
+  );
+}
+
+function OrderHistory({ orders, customerId }) {
+  const { navigate } = useRouter();
+  return (
+    <Card title="Recent orders" className="card-flush" action={orders.length > 0 && <Link to={`/orders?customerId=${customerId}`} className="link-btn">View all</Link>}>
+      <div className="table-scroll" style={{ marginTop: 12 }}>
+        <table className="table">
+          <thead><tr><th>Order</th><th>Store</th><th>Total</th><th>Status</th><th className="hide-sm">Placed</th></tr></thead>
+          <tbody>
+            {orders.length === 0 && <tr><td colSpan={5} className="muted" style={{ textAlign: 'center', padding: 28 }}>No orders yet</td></tr>}
+            {orders.map((o) => (
+              <tr key={o._id} className="is-clickable" onClick={() => navigate(`/orders/${o.orderId}`)}>
+                <td><Code>{o.orderId}</Code></td>
+                <td className="cell-strong">{o.vendor?.storeName || '—'}</td>
+                <td>{money(o.totalAmount)}</td>
+                <td><StatusBadge status={o.status} /></td>
+                <td className="hide-sm">{timeAgo(o.createdAt)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
   );
 }

@@ -1,62 +1,79 @@
 # Fauran Admin Portal
 
-React 19 + Vite admin portal for the Fauran quick-commerce marketplace. It covers every route in `routes/adminRoutes.js` (mounted at `/api/admin`), and runs on realistic mock data until you switch it to the live backend.
+React 19 + Vite admin portal for the Fauran delivery marketplace. It is wired to every endpoint in the **Furan Admin Portal API** handbook: login, account and permissions, vendors, riders, customers, orders, payments and refunds, settings, products, categories, master catalog, inventory, dashboard and reports, payouts, employees, the live rider map and notifications.
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173  (demo login is prefilled)
+npm run dev        # http://localhost:5173
 npm run build
 npm run lint
 ```
 
-## Going live
+## Connecting to the backend
 
-All API calls go through `src/services/adminApi.js`, with one function per backend route. Mock mode is on by default. To use the real Node API, create `.env.local`:
+`npm run dev` proxies `/api` and `/socket.io` to the backend, so the browser only ever talks to its own origin. That means no CORS setup and readable paging headers. Create `.env.local` (copy `.env.example`):
 
+```bash
+# Local backend (default)
+VITE_BACKEND_URL=http://localhost:5000
+
+# …or the deployed backend
+VITE_BACKEND_URL=https://fauran-delivery-app-apis.vercel.app
 ```
-VITE_USE_MOCK=false
-VITE_API_BASE_URL=/api        # Vite proxies /api to http://localhost:5000 (see vite.config.js)
-```
 
-`src/services/http.js` sends the bearer token (`furan_admin_token`), refreshes it once on a 401 via `/auth/refresh-token`, and unwraps the `{ success, data }` envelope. List endpoints are expected to return `{ items, total, page, limit }`. Image routes (`products`, `categories`, `master-catalog`) are sent as `multipart/form-data` under the multer field names `images` and `image`.
+Leave `VITE_API_BASE_URL` at `/api` in development. For a production build served from another domain, set it to the full API URL (`https://host/api`; a bare `https://host` also works, since `/api` is added for you). The backend's CORS list must then include the portal's domain. At the time of writing, the deployed API only allows `http://localhost:3000`.
 
-## Pages → endpoints
+**Live updates:** the rider map and notification bell listen on Socket.IO (`rider:live_location`, `rider:status`, `notification:new`). Vercel does not keep websockets open, so against the Vercel deployment the map falls back to polling every 15 seconds. Run the backend on a normal Node host to get real-time pins.
 
-| Page | Route | Endpoints |
-|---|---|---|
-| Dashboard | `/` | `dashboard/summary`, `dashboard/commission`, `dashboard/inventory`, `analytics/sales` |
-| Orders | `/orders`, `/orders/:id` | `GET orders`, `GET orders/:id`, `PATCH orders/:id/cancel`, `PATCH orders/:id/confirm-return` |
-| Vendors | `/vendors`, `/vendors/:id` | `GET vendors`, `GET vendors/:id`, `PATCH vendors/:id/approve`, `PATCH users/:id/block` |
-| Riders | `/riders`, `/riders/:id`, `/riders/live` | `GET riders`, `GET riders/:id`, `GET riders/live`, `PATCH riders/:id/approve` |
-| Customers | `/customers`, `/customers/:id` | `GET customers`, `GET customers/:id`, `PATCH customers/:id/status`, `PATCH customers/:id/cod` |
-| Payments | `/payments` | `GET payments` |
-| Payouts & settlements | `/payouts` | `payouts/vendors`, `payouts/riders`, `payouts/user/:id`, `POST payouts`, `POST payouts/cash-deposit`, `GET settlements` |
-| Products | `/products` | full CRUD + `PATCH products/:id/approve` |
-| Categories | `/categories` | full CRUD (with sub-categories via `parentCategory`) |
-| Master catalog | `/master-catalog` | CRUD, `GET master-catalog/tree`, `POST master-catalog/bulk` |
-| Inventory | `/inventory` | `GET inventory` |
-| Reports | `/reports?tab=` | `reports/sales`, `revenue`, `vendors`, `riders`, `forecast` |
-| Employees | `/employees` | full CRUD + `GET permissions` |
-| Settings | `/settings` | `GET settings`, `PUT settings/radius`, `settings/commission`, `settings/general` |
-| My profile | `/profile` | `GET me`, `GET permissions` |
-
-Readable IDs (`VEN0003`, `ORD202610130001`, …) work in URLs, matching `useCustomIdParams`.
-
-## Permissions
-
-The sidebar, routes and command palette use the same keys as `requirePermission` (`src/layout/nav.js`). Super admins see everything. Employees see only the pages listed in their `permissions`, and other pages show a "no access" screen. A super admin can use **Preview as…** in the account menu to see the portal as an employee would.
-
-## Structure
+## How the code is organised
 
 ```
 src/
-  services/   http.js (fetch client), adminApi.js (one fn per route + mock implementations)
-  data/       mockDb.js - in-memory demo data, mutated by mock actions
-  lib/        router, auth/permissions context, data hooks, formatters
-  ui/         design-system components: buttons, badges, tables, modals, drawers, charts…
-  layout/     sidebar, top bar, Ctrl+K command palette, nav config
-  pages/      one file per screen
-  styles.css  design tokens (light + dark) and all component styles
+  config.js            env vars → API_BASE_URL, SOCKET_URL, PAGE_SIZE
+  services/
+    http.js            fetch client: bearer token, refresh-once on 401, logout when blocked,
+                       envelope unwrapping, paging headers, multipart helper (withFiles)
+    socket.js          Socket.IO connection + useSocketEvent(event, handler)
+    api/               one module per handbook section - every function documents its
+      auth.js            params and response shape. Import from 'services/api'.
+      people.js        vendors, riders, customers, block/unblock
+      orders.js        orders, payments, refunds
+      catalog.js       products, categories, master catalog, inventory
+      reports.js       dashboard, reports, settings
+      finance.js       payouts, cash deposits, settlements
+      team.js          employees, notifications
+  lib/                 router, auth/permissions context, useApi/useAction/useList hooks,
+                       formatters, constants (statuses, payment methods…)
+  ui/                  design-system components: buttons, badges, tables, modals, charts…
+  layout/              sidebar, top bar (notifications), Ctrl+K palette, nav config
+  pages/               one file per screen; shared.jsx holds cross-page pieces
+                       (approval panel, block button, refund dialog, date range…)
+  styles.css           design tokens (light + dark) and component styles
 ```
 
-`legacy-backup/` holds the previous single-file version of the app. The older `src/Components`, `src/api`, `src/context`, `src/routes` and `src/utils` folders are no longer imported and can be removed.
+### Calling an endpoint
+
+```js
+import { vendorsApi } from '../services/api';
+
+const page = await vendorsApi.list({ status: 'pending', search: 'fresh', page: 1 });
+// → { items, total, page, limit, totalPages }  (totals come from X-Total-* headers)
+
+await vendorsApi.setApproval('VEN20261014172201', 'rejected', 'Blurry CNIC');
+```
+
+Errors throw `ApiError` with the server's `message` (shown to the admin as a toast by `useAction`), `status` and the raw `body`.
+
+### Adding or changing an endpoint
+
+1. Add or edit the function in the matching `src/services/api/*.js` file and update its JSDoc.
+2. Re-export it from `src/services/api/index.js` if it is a new object.
+3. Use it in a page with `useApi` (reads), `useList` (paged lists kept in the URL) or `useAction` (writes with toasts).
+
+## Permissions
+
+The sidebar, routes and command palette use the same 12 keys as the backend (`src/layout/nav.js`). Super admins see everything; employees only see pages in their `permissions`, and other URLs show a "no access" screen. A super admin can use **Preview as…** in the account menu to see the portal as one of their employees.
+
+## Ids
+
+Readable ids (`VEN…`, `RID…`, `CUS…`, `ORD…`, `PRD…`, `CTL…`) are used in every URL, e.g. `/vendors/VEN20261014172201`. The backend accepts them as well as Mongo `_id`s.

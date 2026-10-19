@@ -1,7 +1,7 @@
 import { Search, Zap } from 'lucide-react';
 import { Link, useRouter } from '../lib/router';
 import { useAuth } from '../lib/auth';
-import { USE_MOCK } from '../services/adminApi';
+import { API_BASE_URL } from '../config';
 import { NAV, isActivePath } from './nav';
 
 export default function Sidebar({ badges = {}, onNavigate, onOpenSearch }) {
@@ -43,10 +43,10 @@ export default function Sidebar({ badges = {}, onNavigate, onOpenSearch }) {
       </nav>
 
       <div className="sidebar-foot">
-        <div className={`env-pill ${USE_MOCK ? '' : 'is-live'}`}>
+        <div className="env-pill is-live">
           <i />
-          <span>{USE_MOCK ? 'Demo data' : 'Live API'}</span>
-          <small>{USE_MOCK ? 'mock mode' : '/api/admin'}</small>
+          <span>Live API</span>
+          <small>{API_BASE_URL}/admin</small>
         </div>
       </div>
     </aside>

@@ -1,36 +1,37 @@
-import { useCallback, useEffect, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { Compass, Eye, Lock } from 'lucide-react';
 import { RouterProvider, matchPath, useRouter } from './lib/router';
 import { AuthProvider, useAuth } from './lib/auth';
 import { useApi } from './lib/hooks';
-import { adminApi } from './services/adminApi';
+import { dashboardApi } from './services/api';
 import Sidebar from './layout/Sidebar';
 import Topbar from './layout/Topbar';
 import CommandPalette from './layout/CommandPalette';
 import { Button, Spinner } from './ui/primitives';
 
 import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Vendors from './pages/Vendors';
-import VendorDetail from './pages/VendorDetail';
-import Riders from './pages/Riders';
-import RiderDetail from './pages/RiderDetail';
-import LiveRiders from './pages/LiveRiders';
-import Customers from './pages/Customers';
-import CustomerDetail from './pages/CustomerDetail';
-import Orders from './pages/Orders';
-import OrderDetail from './pages/OrderDetail';
-import Payments from './pages/Payments';
-import Payouts from './pages/Payouts';
-import Products from './pages/Products';
-import Categories from './pages/Categories';
-import MasterCatalog from './pages/MasterCatalog';
-import Inventory from './pages/Inventory';
-import Reports from './pages/Reports';
-import Settings from './pages/Settings';
-import Employees from './pages/Employees';
-import Profile from './pages/Profile';
+// Each page is its own chunk, loaded the first time it is opened.
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Vendors = lazy(() => import('./pages/Vendors'));
+const VendorDetail = lazy(() => import('./pages/VendorDetail'));
+const Riders = lazy(() => import('./pages/Riders'));
+const RiderDetail = lazy(() => import('./pages/RiderDetail'));
+const LiveRiders = lazy(() => import('./pages/LiveRiders'));
+const Customers = lazy(() => import('./pages/Customers'));
+const CustomerDetail = lazy(() => import('./pages/CustomerDetail'));
+const Orders = lazy(() => import('./pages/Orders'));
+const OrderDetail = lazy(() => import('./pages/OrderDetail'));
+const Payments = lazy(() => import('./pages/Payments'));
+const Payouts = lazy(() => import('./pages/Payouts'));
+const Products = lazy(() => import('./pages/Products'));
+const Categories = lazy(() => import('./pages/Categories'));
+const MasterCatalog = lazy(() => import('./pages/MasterCatalog'));
+const Inventory = lazy(() => import('./pages/Inventory'));
+const Reports = lazy(() => import('./pages/Reports'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Employees = lazy(() => import('./pages/Employees'));
+const Profile = lazy(() => import('./pages/Profile'));
 
 // Order matters: static segments ("/riders/live") must come before params ("/riders/:id").
 const ROUTES = [
@@ -47,10 +48,10 @@ const ROUTES = [
   { path: '/payments', component: Payments, perm: ['payments'], crumbs: ['Finance', 'Payments'] },
   { path: '/payouts', component: Payouts, perm: ['payments'], crumbs: ['Finance', 'Payouts & settlements'] },
   { path: '/products', component: Products, perm: ['products'], crumbs: ['Catalog', 'Products'] },
-  { path: '/categories', component: Categories, perm: ['catalog'], crumbs: ['Catalog', 'Categories'] },
+  { path: '/categories', component: Categories, perm: ['catalog', 'products'], crumbs: ['Catalog', 'Categories'] },
   { path: '/master-catalog', component: MasterCatalog, perm: ['catalog', 'products'], crumbs: ['Catalog', 'Master catalog'] },
   { path: '/inventory', component: Inventory, perm: ['inventory'], crumbs: ['Catalog', 'Inventory'] },
-  { path: '/reports', component: Reports, perm: ['reports'], crumbs: ['Reports'] },
+  { path: '/reports', component: Reports, perm: ['reports', 'inventory'], crumbs: ['Reports'] },
   { path: '/employees', component: Employees, perm: ['employees'], crumbs: ['Administration', 'Employees'] },
   { path: '/settings', component: Settings, perm: ['settings'], crumbs: ['Administration', 'Settings'] },
   { path: '/profile', component: Profile, perm: [], crumbs: ['My profile'] },
@@ -131,8 +132,13 @@ function Shell() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const { data: summary } = useApi(() => (can('dashboard') ? adminApi.getDashboardSummary() : Promise.resolve(null)), [pathname.split('/')[1]]);
-  const badges = summary?.pendingApprovals || {};
+  // Pending-approval counts for the sidebar badges; refreshed when the section changes.
+  const { data: summary } = useApi(() => (can('dashboard') ? dashboardApi.summary() : Promise.resolve(null)), [pathname.split('/')[1]]);
+  const badges = {
+    vendors: summary?.users?.vendors?.pending,
+    riders: summary?.users?.riders?.pending,
+    products: summary?.inventory?.pendingApproval,
+  };
 
   const match = resolve(pathname);
   // Landing on "/" without dashboard access: go to the first page the user can open.
@@ -160,7 +166,9 @@ function Shell() {
           </div>
         )}
         <main className="content" key={pathname}>
-          {!match ? <NotFound /> : !allowed ? <Forbidden /> : <Page params={match.params} />}
+          <Suspense fallback={<div className="blank-state"><Spinner size={26} /></div>}>
+            {!match ? <NotFound /> : !allowed ? <Forbidden /> : <Page params={match.params} />}
+          </Suspense>
         </main>
       </div>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
