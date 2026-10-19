@@ -1,0 +1,2 @@
+/api/*  https://fauran-delivery-app-apis.vercel.app/api/:splat  200
+/*      /index.html  200

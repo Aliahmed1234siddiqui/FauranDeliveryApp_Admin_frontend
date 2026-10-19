@@ -25,6 +25,15 @@ Leave `VITE_API_BASE_URL` at `/api` in development. For a production build serve
 
 **Live updates:** the rider map and notification bell listen on Socket.IO (`rider:live_location`, `rider:status`, `notification:new`). Vercel does not keep websockets open, so against the Vercel deployment the map falls back to polling every 15 seconds. Run the backend on a normal Node host to get real-time pins.
 
+## Deploying
+
+The portal is a single-page app, so the host must serve `index.html` for every path. Otherwise reloading a page such as `/vendors/VEN…` gives a 404.
+
+- **Vercel:** `vercel.json` does this, and also forwards `/api/*` to the backend so production calls stay same-origin (no CORS setup). Leave `VITE_API_BASE_URL` unset or set it to `/api`.
+- **Netlify / Cloudflare Pages / Render:** `public/_redirects` holds the same two rules.
+
+If the backend URL changes, update it in both files.
+
 ## How the code is organised
 
 ```
