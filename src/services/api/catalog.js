@@ -3,7 +3,7 @@
 // Picture routes: pass File objects under `images` (products, master items, up to 5)
 // or `image` (categories, 1 file). `withFiles` sends multipart only when files are
 // attached, otherwise JSON. Max 5 MB, jpg/png/webp/pdf.
-import { http, withFiles } from '../http';
+import { http, withFiles } from '@/services/http';
 
 export const productsApi = {
   /**
@@ -38,7 +38,8 @@ export const productsApi = {
   },
 
   /** PATCH /admin/products/:id/approve { isApproved: boolean, reason? } - notifies the store. */
-  setApproval: (id, isApproved, reason) => http.patch(`/admin/products/${id}/approve`, { isApproved, reason }),
+  setApproval: (id, isApproved, reason) =>
+    http.patch(`/admin/products/${id}/approve`, { isApproved, reason }),
 
   /** DELETE /admin/products/:id - for good. To hide instead, update({ isActive: false }). */
   remove: (id) => http.delete(`/admin/products/${id}`),

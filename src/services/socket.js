@@ -8,8 +8,9 @@
 
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
-import { SOCKET_URL } from '../config';
-import { tokenStore } from './http';
+
+import { SOCKET_URL } from '@/config/env';
+import { tokenStore } from '@/services/http';
 
 let socket = null;
 
@@ -35,13 +36,17 @@ export function disconnectSocket() {
 /** Subscribe to one socket event while the component is mounted. */
 export function useSocketEvent(event, handler) {
   const ref = useRef(handler);
-  useLayoutEffect(() => { ref.current = handler; });
+  useLayoutEffect(() => {
+    ref.current = handler;
+  });
 
   useEffect(() => {
     const s = connectSocket();
     if (!s) return undefined;
     const listener = (payload) => ref.current(payload);
     s.on(event, listener);
-    return () => { s.off(event, listener); };
+    return () => {
+      s.off(event, listener);
+    };
   }, [event]);
 }

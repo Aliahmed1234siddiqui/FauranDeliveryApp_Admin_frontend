@@ -1,0 +1,204 @@
+/* ============================================================
+   Base
+   ============================================================ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+body {
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings:
+    'tnum' 1,
+    'cv11' 1;
+  min-width: 320px;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+button {
+  cursor: pointer;
+}
+a {
+  color: var(--brand);
+  text-decoration: none;
+}
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 6px 0;
+}
+::selection {
+  background: var(--brand-soft);
+}
+:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+  border-radius: 6px;
+}
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 currentColor;
+  }
+  70% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+@keyframes shimmer {
+  from {
+    background-position: -400px 0;
+  }
+  to {
+    background-position: 400px 0;
+  }
+}
+.muted {
+  color: var(--text-3);
+}
+.text-2 {
+  color: var(--text-2);
+}
+.strong {
+  font-weight: 600;
+}
+.num {
+  font-variant-numeric: tabular-nums;
+}
+.pos {
+  color: var(--success);
+}
+.neg {
+  color: var(--danger);
+}
+.mono-chip {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  padding: 2px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.row-wrap {
+  flex-wrap: wrap;
+}
+.stack {
+  display: grid;
+  gap: 16px;
+}
+.spacer {
+  flex: 1;
+}
+
+/* tone helpers */
+.tone-brand {
+  color: var(--brand);
+  background: var(--brand-soft);
+}
+.tone-amber,
+.tone-warning {
+  color: var(--warning);
+  background: var(--warning-soft);
+}
+.tone-blue,
+.tone-info {
+  color: var(--info);
+  background: var(--info-soft);
+}
+.tone-violet {
+  color: var(--violet);
+  background: var(--violet-soft);
+}
+.tone-rose {
+  color: var(--rose);
+  background: var(--rose-soft);
+}
+.tone-danger {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+.tone-success {
+  color: var(--success);
+  background: var(--success-soft);
+}
+.tone-teal {
+  color: var(--teal);
+  background: var(--teal-soft);
+}
+.tone-bg-brand {
+  background: var(--brand);
+}
+.tone-bg-warning {
+  background: var(--warning);
+}
+.tone-bg-danger {
+  background: var(--danger);
+}
+.tone-bg-success {
+  background: var(--success);
+}

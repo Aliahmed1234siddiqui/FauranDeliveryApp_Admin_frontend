@@ -1,0 +1,17 @@
+/* Fauran admin styles. Edit colors, fonts, radii and shadows in tokens.css;
+   every other file reads those variables, so light and dark themes stay in sync.
+   Order matters: responsive.css overrides the rest and must stay last. */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400..800&family=JetBrains+Mono:wght@500&display=swap');
+
+@import './tokens.css';
+@import './base.css';
+@import './layout.css';
+@import './components/buttons.css';
+@import './components/badges.css';
+@import './components/cards.css';
+@import './components/forms.css';
+@import './components/tables.css';
+@import './components/overlays.css';
+@import './components/charts.css';
+@import './pages.css';
+@import './responsive.css';

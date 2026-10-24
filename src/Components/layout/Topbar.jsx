@@ -1,42 +1,104 @@
-import { Bell, LogOut, Menu } from "lucide-react";
-import { useAuth } from "../../context/AuthContext";
-import { initials } from "../../utils/formatters";
+import {
+  ChevronRight,
+  Eye,
+  LogOut,
+  Menu as MenuIcon,
+  Moon,
+  RotateCcw,
+  Search,
+  Sun,
+  UserRound,
+} from 'lucide-react';
 
-export default function Topbar({ title, onMenuClick }) {
-  const { admin, logout } = useAuth();
+import { Menu } from '@/components/overlays';
+import { Avatar } from '@/components/ui';
+import { useAuth } from '@/context';
+import { useApi } from '@/hooks';
+import { Link, paths, useRouter } from '@/router';
+import { employeesApi } from '@/services/api';
+
+import { Notifications } from './notifications-menu';
+
+export function Topbar({ crumbs, onMenu, onOpenSearch, theme, onToggleTheme }) {
+  const { admin, logout, previewAs, setPreviewAs } = useAuth();
+  const { navigate } = useRouter();
+  // Super admins can preview the portal as one of their active employees.
+  const team = useApi(
+    () => (admin?.isSuperAdmin ? employeesApi.list({ status: 'active', limit: 5 }) : Promise.resolve(null)),
+    [admin?._id],
+    { key: 'team-preview' },
+  );
+  const previewable = team.data?.items || [];
 
   return (
-    <header className="flex items-center justify-between border-b border-surface-border bg-white px-4 py-3 lg:px-6">
-      <div className="flex items-center gap-3">
-        <button className="rounded-md p-1.5 hover:bg-surface lg:hidden" onClick={onMenuClick} aria-label="Open menu">
-          <Menu size={20} />
-        </button>
-        <h1 className="text-lg font-semibold text-ink">{title}</h1>
-      </div>
+    <header className="topbar">
+      <button type="button" className="icon-btn topbar-menu" aria-label="Open navigation" onClick={onMenu}>
+        <MenuIcon size={20} />
+      </button>
+      <nav className="crumbs" aria-label="Breadcrumb">
+        {crumbs.map((c, i) =>
+          i === crumbs.length - 1 ? (
+            <strong key={c.label}>{c.label}</strong>
+          ) : (
+            <span key={c.label} className="row" style={{ gap: 6 }}>
+              {c.to ? <Link to={c.to}>{c.label}</Link> : <span>{c.label}</span>}
+              <ChevronRight size={14} />
+            </span>
+          ),
+        )}
+      </nav>
 
-      <div className="flex items-center gap-3">
-        <button className="relative rounded-full p-2 text-ink-muted hover:bg-surface" aria-label="Notifications">
-          <Bell size={18} />
-          <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-status-danger" />
+      <div className="topbar-actions">
+        <button type="button" className="topbar-search" onClick={onOpenSearch}>
+          <Search size={15} />
+          <span>Search pages & actions</span>
+          <kbd>Ctrl K</kbd>
         </button>
-
-        <div className="flex items-center gap-2 border-l border-surface-border pl-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-light text-xs font-semibold text-brand">
-            {initials(admin?.name || "Admin")}
-          </div>
-          <div className="hidden sm:block">
-            <p className="text-sm font-medium leading-none text-ink">{admin?.name}</p>
-            <p className="text-xs text-ink-muted">Administrator</p>
-          </div>
-          <button
-            onClick={logout}
-            className="ml-1 rounded-md p-1.5 text-ink-muted hover:bg-surface hover:text-status-danger"
-            aria-label="Log out"
-            title="Log out"
-          >
-            <LogOut size={16} />
-          </button>
-        </div>
+        <button
+          type="button"
+          className="icon-btn"
+          aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          onClick={onToggleTheme}
+        >
+          {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
+        <Notifications />
+        <Menu
+          trigger={({ toggle }) => (
+            <button type="button" className="user-chip" onClick={toggle} aria-label="Account menu">
+              <Avatar name={admin?.name} src={admin?.profileImage || undefined} size="sm" tone="brand" />
+              <span className="user-chip-copy">
+                <strong>{admin?.name}</strong>
+                <small>
+                  {previewAs
+                    ? `Previewing ${previewAs.name.split(' ')[0]}`
+                    : admin?.isSuperAdmin
+                      ? 'Super admin'
+                      : admin?.designation || 'Employee'}
+                </small>
+              </span>
+            </button>
+          )}
+          items={[
+            { label: 'My profile & access', icon: UserRound, onClick: () => navigate(paths.profile()) },
+            ...(previewable.length
+              ? [
+                  'divider',
+                  ...previewable.map((e) => ({
+                    label: `Preview as ${e.name.split(' ')[0]}${e.designation ? ` (${e.designation})` : ''}`,
+                    icon: Eye,
+                    onClick: () => {
+                      setPreviewAs(e);
+                      navigate(paths.dashboard());
+                    },
+                  })),
+                ]
+              : []),
+            previewAs && { label: 'Stop preview', icon: RotateCcw, onClick: () => setPreviewAs(null) },
+            'divider',
+            { label: 'Log out', icon: LogOut, tone: 'danger', onClick: logout },
+          ]}
+        />
       </div>
     </header>
   );
