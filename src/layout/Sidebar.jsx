@@ -13,7 +13,7 @@ export default function Sidebar({ badges = {}, onNavigate, onOpenSearch }) {
       <div className="sidebar-brand">
         <span className="logo-mark"><Zap size={19} fill="currentColor" /></span>
         <div className="logo-text">
-          <strong>Fauran</strong>
+          <strong>Fauran Mart</strong>
           <small>Admin portal</small>
         </div>
       </div>

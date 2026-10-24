@@ -152,7 +152,7 @@ function RadiusSettings({ radius, onSaved }) {
   return (
     <div className="stack">
       <div className="grid grid-2">
-        <Card title="Rider search radius" subtitle="How far Fauran looks for a rider when an order is ready">
+        <Card title="Rider search radius" subtitle="How far Fauran Mart looks for a rider when an order is ready">
           <div className="stack">
             <NumberField label="Starting radius" suffix="km" step={0.5} min={0.5} value={form.initialKm} onChange={set('initialKm')} error={errors.initialKm} hint="First search ring. At least 0.5 km" />
             <NumberField label="Expand by" suffix="km" step={0.5} min={0.5} value={form.stepKm} onChange={set('stepKm')} error={errors.stepKm} hint="Added each time nobody accepts. At least 0.5 km" />
@@ -185,7 +185,7 @@ function CommissionSettings({ commission, onSaved }) {
   return (
     <div className="stack">
       <div className="grid grid-2">
-        <Card title="Platform commission" subtitle="Fauran's share of each order's product sales">
+        <Card title="Platform commission" subtitle="Fauran Mart's share of each order's product sales">
           <Field label="Commission rate" error={error} hint="0–100%, decimals allowed.">
             {(id) => <Input id={id} type="number" min="0" max="100" step="0.5" suffix="%" value={percent} onChange={(e) => setPercent(e.target.value)} />}
           </Field>
@@ -196,7 +196,7 @@ function CommissionSettings({ commission, onSaved }) {
           <Field label="Products subtotal">{(id) => <Input id={id} type="number" min="0" prefix="Rs." value={sample} onChange={(e) => setSample(e.target.value)} />}</Field>
           <div className="totals" style={{ marginTop: 10 }}>
             <div><span>Products subtotal</span><span>{money(subtotal)}</span></div>
-            <div><span>Fauran commission ({value}%)</span><span className="neg">− {money(fee)}</span></div>
+            <div><span>Fauran Mart commission ({value}%)</span><span className="neg">− {money(fee)}</span></div>
             <div className="grand"><span>Vendor payout</span><span>{money(subtotal - fee)}</span></div>
           </div>
         </Card>

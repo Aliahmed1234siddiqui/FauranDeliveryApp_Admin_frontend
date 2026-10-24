@@ -41,7 +41,7 @@ export default function Vendors() {
     <>
       <PageHeader
         title="Vendors"
-        description="Every store selling on Fauran. Review applications, check performance and manage access."
+        description="Every store selling on Fauran Mart. Review applications, check performance and manage access."
       />
 
       <div className="stat-grid">

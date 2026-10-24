@@ -146,7 +146,7 @@ function ItemsCard({ order: o }) {
         <div><span>Subtotal</span><span>{money(o.subtotal)}</span></div>
         <div><span>Delivery fee</span><span>{o.deliveryFee ? money(o.deliveryFee) : <Badge tone="success">Free</Badge>}</span></div>
         <div className="grand"><span>Total</span><span>{money(o.totalAmount)}</span></div>
-        <div style={{ fontSize: 12.5 }}><span className="muted">Fauran commission</span><span className="muted">{money(o.platformCommission)}</span></div>
+        <div style={{ fontSize: 12.5 }}><span className="muted">Fauran Mart commission</span><span className="muted">{money(o.platformCommission)}</span></div>
         <div style={{ fontSize: 12.5 }}><span className="muted">Vendor payout</span><span className="muted">{money(o.vendorPayout)}</span></div>
       </div>
     </Card>

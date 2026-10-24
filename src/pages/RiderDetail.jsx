@@ -157,8 +157,8 @@ function SettlementCard({ balance, onDeposit }) {
   return (
     <Card title="Settlement position">
       <KeyValue columns={1} items={[
-        ['Fauran owes rider', <span key="o" className="pos">{money(balance.furanOwesRider)}</span>],
-        ['Rider owes Fauran', <span key="r" className={balance.riderOwesFuran ? 'neg' : ''}>{money(balance.riderOwesFuran)}</span>],
+        ['Fauran Mart owes rider', <span key="o" className="pos">{money(balance.furanOwesRider)}</span>],
+        ['Rider owes Fauran Mart', <span key="r" className={balance.riderOwesFuran ? 'neg' : ''}>{money(balance.riderOwesFuran)}</span>],
         ['COD cash in hand', <span key="c" className={balance.cashInHand ? 'neg' : ''}>{money(balance.cashInHand)}</span>],
         ['Last payout', balance.lastPayoutAt ? timeAgo(balance.lastPayoutAt) : 'Never'],
       ]} />

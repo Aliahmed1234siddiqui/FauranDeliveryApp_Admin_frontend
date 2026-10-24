@@ -150,7 +150,7 @@ export default function Dashboard() {
       <div className="hero">
         <div>
           <h1>{greeting()}, {admin?.name?.split(' ')[0]} 👋</h1>
-          <p>Here&apos;s what&apos;s happening across Fauran today, {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}.</p>
+          <p>Here&apos;s what&apos;s happening across Fauran Mart today, {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}.</p>
         </div>
         {s && (
           <div className="hero-chips">

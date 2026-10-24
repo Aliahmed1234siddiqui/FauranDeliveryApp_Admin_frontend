@@ -55,7 +55,7 @@ export default function Customers() {
 
   return (
     <>
-      <PageHeader title="Customers" description="Everyone who shops on Fauran. Control cash-on-delivery access and account status." />
+      <PageHeader title="Customers" description="Everyone who shops on Fauran Mart. Control cash-on-delivery access and account status." />
       <div className="stat-grid">
         <StatCard icon={Users} label="Total customers" value={stat(total)} footer="Registered accounts" onClick={() => list.setFilter('status', 'all')} />
         <StatCard icon={UserCheck} tone="blue" label="Active" value={stat(active)} footer="Can place orders" onClick={() => list.setFilter('status', 'active')} />

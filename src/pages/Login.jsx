@@ -29,7 +29,7 @@ export default function Login() {
       <section className="login-art">
         <div className="row" style={{ gap: 12 }}>
           <span className="logo-mark"><Zap size={19} fill="currentColor" /></span>
-          <div className="logo-text"><strong>Fauran</strong><small>Admin portal</small></div>
+          <div className="logo-text"><strong>Fauran Mart</strong><small>Admin portal</small></div>
         </div>
         <div>
           <h2>Run the whole marketplace from <em>one calm place.</em></h2>

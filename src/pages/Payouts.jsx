@@ -69,7 +69,7 @@ function PayoutBody({ target, onClose, onDone }) {
       open
       onClose={onClose}
       title={`Pay ${target.name}`}
-      description="Record money Fauran has sent to this account. It's added to the settlement history."
+      description="Record money Fauran Mart has sent to this account. It's added to the settlement history."
       icon={Send}
       footer={(
         <>
@@ -121,7 +121,7 @@ function CashDepositBody({ riderId: initialId, riders, loading, onClose, onDone 
       open
       onClose={onClose}
       title="Record cash received"
-      description="Log COD cash a rider has handed over. It lowers their cash in hand and raises what Fauran owes them."
+      description="Log COD cash a rider has handed over. It lowers their cash in hand and raises what Fauran Mart owes them."
       icon={HandCoins}
       tone="amber"
       footer={(
@@ -165,7 +165,7 @@ function LedgerDrawer({ userId, onClose }) {
             <div className="mini-stat"><span>Paid out</span><strong className="neg">{compactMoney(b.paidOut)}</strong></div>
             {isRider ? (
               <div className="mini-stat">
-                <span>{b.riderOwesFuran > 0 ? 'Rider owes Fauran' : 'Fauran owes rider'}</span>
+                <span>{b.riderOwesFuran > 0 ? 'Rider owes Fauran Mart' : 'Fauran Mart owes rider'}</span>
                 <strong className={b.riderOwesFuran > 0 ? 'neg' : 'pos'}>{compactMoney(b.riderOwesFuran > 0 ? b.riderOwesFuran : b.furanOwesRider)}</strong>
                 <small>Cash in hand {money(b.cashInHand)}</small>
               </div>
@@ -198,7 +198,7 @@ function LedgerDrawer({ userId, onClose }) {
 }
 
 function RiderBalance({ r }) {
-  if (r.furanOwesRider > 0) return <span className="cell-strong pos">Fauran owes {money(r.furanOwesRider)}</span>;
+  if (r.furanOwesRider > 0) return <span className="cell-strong pos">Fauran Mart owes {money(r.furanOwesRider)}</span>;
   if (r.riderOwesFuran > 0) return <Badge tone="danger">Rider owes {money(r.riderOwesFuran)}</Badge>;
   return <span className="muted">Settled</span>;
 }
@@ -272,10 +272,10 @@ function RiderTab({ list, owes, setOwes, onPay, onDeposit, onLedger }) {
       <div className="toolbar">
         <SearchInput value={search} onChange={setSearch} placeholder="Search rider name, id or phone" />
         <div className="spacer" />
-        <Segmented value={owes} onChange={setOwes} options={[{ value: '', label: 'All riders' }, { value: 'furan', label: 'Fauran owes rider' }, { value: 'rider', label: 'Rider owes Fauran' }]} />
+        <Segmented value={owes} onChange={setOwes} options={[{ value: '', label: 'All riders' }, { value: 'furan', label: 'Fauran Mart owes rider' }, { value: 'rider', label: 'Rider owes Fauran Mart' }]} />
       </div>
       <MoneyRule>
-        Cash in hand = COD collected − cash deposited. Balance = earned − paid out − cash in hand. A rider can only be paid what Fauran owes them, so record cash received first.
+        Cash in hand = COD collected − cash deposited. Balance = earned − paid out − cash in hand. A rider can only be paid what Fauran Mart owes them, so record cash received first.
       </MoneyRule>
       <DataTable
         columns={columns}
@@ -346,14 +346,14 @@ export default function Payouts() {
     <>
       <PageHeader
         title="Payouts & settlements"
-        description="What Fauran owes vendors and riders, and the COD cash riders still need to hand over."
+        description="What Fauran Mart owes vendors and riders, and the COD cash riders still need to hand over."
         actions={<Button variant="secondary" icon={HandCoins} onClick={() => openDeposit('1')}>Record cash received</Button>}
       />
       <div className="stat-grid">
         <StatCard icon={Store} label="Due to vendors" value={vendors.loading && !vendors.data ? '–' : compactMoney(sum(vendorRows, 'due'))} footer={`${vendorRows.filter((v) => v.due > 0).length} vendors owed money`} onClick={() => setTab('vendors')} />
-        <StatCard icon={Bike} tone="violet" label="Fauran owes riders" value={ridersAll.loading && !ridersAll.data ? '–' : compactMoney(sum(riderRows, 'furanOwesRider'))} footer={`${riderRows.filter((r) => r.furanOwesRider > 0).length} riders to pay`} onClick={() => { setTab('riders'); setOwes('furan'); }} />
+        <StatCard icon={Bike} tone="violet" label="Fauran Mart owes riders" value={ridersAll.loading && !ridersAll.data ? '–' : compactMoney(sum(riderRows, 'furanOwesRider'))} footer={`${riderRows.filter((r) => r.furanOwesRider > 0).length} riders to pay`} onClick={() => { setTab('riders'); setOwes('furan'); }} />
         <StatCard icon={Banknote} tone="rose" label="COD cash with riders" value={ridersAll.loading && !ridersAll.data ? '–' : compactMoney(sum(riderRows, 'cashInHand'))} footer={`${riderRows.filter((r) => r.cashInHand > 0).length} riders holding cash`} onClick={() => setTab('riders')} />
-        <StatCard icon={Landmark} tone="blue" label="Riders owe Fauran" value={ridersAll.loading && !ridersAll.data ? '–' : compactMoney(sum(riderRows, 'riderOwesFuran'))} footer="Cash held beyond their earnings" onClick={() => { setTab('riders'); setOwes('rider'); }} />
+        <StatCard icon={Landmark} tone="blue" label="Riders owe Fauran Mart" value={ridersAll.loading && !ridersAll.data ? '–' : compactMoney(sum(riderRows, 'riderOwesFuran'))} footer="Cash held beyond their earnings" onClick={() => { setTab('riders'); setOwes('rider'); }} />
       </div>
 
       <Tabs value={tab} onChange={setTab} tabs={[{ value: 'vendors', label: 'Vendor balances', icon: Store }, { value: 'riders', label: 'Rider balances & COD', icon: Bike }, { value: 'settlements', label: 'Settlement history', icon: Receipt, count: settlements.total || undefined }]} />

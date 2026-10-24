@@ -66,7 +66,7 @@ function SalesTab({ range }) {
               <div className="stat-grid">
                 <StatCard icon={ShoppingBag} label="Delivered orders" value={num(t.orders)} footer={`Across ${num(rows.length)} periods with sales`} />
                 <StatCard icon={Receipt} tone="amber" label="Total sales" value={compactMoney(t.sales)} footer="Products + delivery fees" />
-                <StatCard icon={Percent} tone="violet" label="Platform commission" value={compactMoney(t.commission)} footer="Furan's earnings" />
+                <StatCard icon={Percent} tone="violet" label="Platform commission" value={compactMoney(t.commission)} footer="Fauran Mart's earnings" />
                 <StatCard icon={TrendingUp} tone="blue" label="Avg. order value" value={money(avg(t.sales, t.orders))} footer="Total sales / delivered orders" />
               </div>
               <div className="grid grid-2">
@@ -156,7 +156,7 @@ function RevenueTab({ range }) {
               <div className="mini-stats">
                 <div className="mini-stat"><span>Refunds · {num(d.refunds?.count)}</span><strong>{money(d.refunds?.amount)}</strong></div>
                 <div className="mini-stat"><span>Cancelled orders · {num(d.cancelledOrders?.count)}</span><strong>{money(d.cancelledOrders?.amount)}</strong></div>
-                <div className="mini-stat"><span>Failed deliveries · {num(fd.count)}</span><strong>{money(fd.furanCost)}<small style={{ display: 'inline', marginLeft: 4 }}>Furan cost</small></strong></div>
+                <div className="mini-stat"><span>Failed deliveries · {num(fd.count)}</span><strong>{money(fd.furanCost)}<small style={{ display: 'inline', marginLeft: 4 }}>Fauran Mart cost</small></strong></div>
                 <div className="mini-stat"><span>Rider fees on failed</span><strong>{money(fd.riderFeesPaid)}</strong></div>
                 <div className="mini-stat"><span>Card refunds due</span><strong>{money(fd.cardRefundsDue)}</strong></div>
               </div>

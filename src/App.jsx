@@ -34,8 +34,9 @@ const Reports = lazy(() => import('./pages/Reports'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Employees = lazy(() => import('./pages/Employees'));
 const Profile = lazy(() => import('./pages/Profile'));
-// Cache inspector, only in `npm run dev` (dropped from production builds).
-const QueryDevtools = import.meta.env.DEV
+// React Query cache inspector (the floating TanStack button). Hidden by default; to use it while
+// developing, set VITE_QUERY_DEVTOOLS=true in .env.local. Never included in production builds.
+const QueryDevtools = import.meta.env.DEV && import.meta.env.VITE_QUERY_DEVTOOLS === 'true'
   ? lazy(() => import('@tanstack/react-query-devtools').then((m) => ({ default: m.ReactQueryDevtools })))
   : () => null;
 
@@ -72,7 +73,7 @@ function resolve(pathname) {
 }
 
 function buildCrumbs(route, params) {
-  const list = [{ label: 'Fauran', to: '/' }];
+  const list = [{ label: 'Fauran Mart', to: '/' }];
   if (!route) return [...list, { label: 'Not found' }];
   if (!route.crumbs.length) return [...list, { label: 'Dashboard' }];
   route.crumbs.forEach((c) => {
