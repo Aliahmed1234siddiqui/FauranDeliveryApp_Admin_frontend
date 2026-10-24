@@ -6,7 +6,7 @@
 //           balance = totalEarned - paidOut - cashInHand
 //           furanOwesRider = max(balance, 0) · riderOwesFuran = max(-balance, 0)
 // A rider can only be paid up to furanOwesRider, so record their cash deposit first.
-import { http } from '../http';
+import { http } from '@/services/http';
 
 export const SETTLEMENT_METHODS = ['bank_transfer', 'cash', 'easypaisa', 'jazzcash', 'other'];
 
@@ -36,13 +36,15 @@ export const payoutsApi = {
    * POST /admin/payouts { userId*, amount*, method = bank_transfer, reference, note }
    * → { settlement, balance }. 400 "Only PKR … is owed to this vendor|rider"
    */
-  create: ({ userId, amount, method, reference, note }) => http.post('/admin/payouts', { userId, amount: Number(amount), method, reference, note }),
+  create: ({ userId, amount, method, reference, note }) =>
+    http.post('/admin/payouts', { userId, amount: Number(amount), method, reference, note }),
 
   /**
    * POST /admin/payouts/cash-deposit { riderId*, amount*, method = cash, reference, note }
    * → { settlement, balance }. 400 "The rider only holds PKR …"
    */
-  recordCashDeposit: ({ riderId, amount, method, reference, note }) => http.post('/admin/payouts/cash-deposit', { riderId, amount: Number(amount), method, reference, note }),
+  recordCashDeposit: ({ riderId, amount, method, reference, note }) =>
+    http.post('/admin/payouts/cash-deposit', { riderId, amount: Number(amount), method, reference, note }),
 };
 
 export const settlementsApi = {

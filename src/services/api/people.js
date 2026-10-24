@@ -2,7 +2,7 @@
 //
 // Every `:id` accepts our readable id (VEN…, RID…, CUS…) or the MongoDB _id.
 // List calls resolve `{ items, total, page, limit, totalPages }`.
-import { http } from '../http';
+import { http } from '@/services/http';
 
 export const vendorsApi = {
   /**
@@ -29,7 +29,8 @@ export const vendorsApi = {
    * approvalStatus: approved (also unblocks) | rejected (blocks + logs out) | pending
    * reason is only sent in the notification. → the updated vendor
    */
-  setApproval: (id, approvalStatus, reason) => http.patch(`/admin/vendors/${id}/approve`, { approvalStatus, reason }),
+  setApproval: (id, approvalStatus, reason) =>
+    http.patch(`/admin/vendors/${id}/approve`, { approvalStatus, reason }),
 };
 
 export const ridersApi = {
@@ -62,7 +63,8 @@ export const ridersApi = {
   get: (id) => http.get(`/admin/riders/${id}`),
 
   /** PATCH /admin/riders/:id/approve - same rules as vendorsApi.setApproval. */
-  setApproval: (id, approvalStatus, reason) => http.patch(`/admin/riders/${id}/approve`, { approvalStatus, reason }),
+  setApproval: (id, approvalStatus, reason) =>
+    http.patch(`/admin/riders/${id}/approve`, { approvalStatus, reason }),
 };
 
 export const customersApi = {

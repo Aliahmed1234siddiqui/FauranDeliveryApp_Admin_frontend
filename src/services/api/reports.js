@@ -4,7 +4,7 @@
 // products only · deliveryFees = rider earnings · platformCommission = Furan's profit ·
 // vendorPayout = productSales - commission. Reports count delivered orders only and
 // filter on the order's created date. Date params: { from, to } as YYYY-MM-DD.
-import { http } from '../http';
+import { http } from '@/services/http';
 
 export const dashboardApi = {
   /**
@@ -93,7 +93,9 @@ export const settingsApi = {
 
 // The server reads "" / null number fields as 0, so leave empty ones out and send real numbers.
 function numbersOnly(payload) {
-  return Object.fromEntries(Object.entries(payload)
-    .filter(([, v]) => v !== '' && v !== null && v !== undefined)
-    .map(([k, v]) => [k, typeof v === 'boolean' ? v : Number(v)]));
+  return Object.fromEntries(
+    Object.entries(payload)
+      .filter(([, v]) => v !== '' && v !== null && v !== undefined)
+      .map(([k, v]) => [k, typeof v === 'boolean' ? v : Number(v)]),
+  );
 }

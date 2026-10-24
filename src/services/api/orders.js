@@ -1,5 +1,5 @@
 // Orders, payments and refunds (handbook sections 8-9).
-import { http } from '../http';
+import { http } from '@/services/http';
 
 export const ordersApi = {
   /**
@@ -43,12 +43,15 @@ export const ordersApi = {
    * PATCH /admin/orders/:id/confirm-return { restock = true, note? }   🔒 orders
    * delivery_failed → returned. A paid card order then has refundDue > 0. → updated order
    */
-  confirmReturn: (id, { restock = true, note } = {}) => http.patch(`/admin/orders/${id}/confirm-return`, { restock, note }),
+  confirmReturn: (id, { restock = true, note } = {}) =>
+    http.patch(`/admin/orders/${id}/confirm-return`, { restock, note }),
 };
 
 /** True when a cancelled/returned order still needs a manual card refund. */
-export const needsRefund = (order) => order?.paymentMethod === 'stripe' && order?.paymentStatus === 'paid'
-  && (order.status === 'cancelled' || order.refundDue > 0);
+export const needsRefund = (order) =>
+  order?.paymentMethod === 'stripe' &&
+  order?.paymentStatus === 'paid' &&
+  (order.status === 'cancelled' || order.refundDue > 0);
 
 export const paymentsApi = {
   /**
@@ -67,5 +70,6 @@ export const paymentsApi = {
    * Without amount the server refunds refundDue, else the whole payment. One refund per payment.
    * → the refunded payment
    */
-  refund: (orderId, amount) => http.post(`/payments/refund/${orderId}`, amount ? { amount: Number(amount) } : {}),
+  refund: (orderId, amount) =>
+    http.post(`/payments/refund/${orderId}`, amount ? { amount: Number(amount) } : {}),
 };

@@ -1,5 +1,5 @@
 // Auth + the logged-in admin's account (handbook sections 1 and 4).
-import { http } from '../http';
+import { http } from '@/services/http';
 
 export const authApi = {
   /**

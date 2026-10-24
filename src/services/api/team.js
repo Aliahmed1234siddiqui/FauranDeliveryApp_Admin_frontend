@@ -1,5 +1,5 @@
 // Employees (sub-admins) and the admin's own notifications (handbook sections 17-18).
-import { http } from '../http';
+import { http } from '@/services/http';
 
 export const employeesApi = {
   /**

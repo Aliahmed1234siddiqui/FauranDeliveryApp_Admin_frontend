@@ -6,7 +6,7 @@
 // - On "account blocked" 403 it logs out straight away.
 // - `http.page()` reads the X-Total-* paging headers into `{ items, total, ... }`.
 
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL } from '@/config/env';
 
 // ---------------------------------------------------------------------------
 // Token storage. "Remember me" keeps the token in localStorage (7 days);
@@ -15,25 +15,37 @@ import { API_BASE_URL } from '../config';
 const TOKEN_KEY = 'furan_admin_token';
 const REFRESH_KEY = 'furan_admin_refresh';
 
-const safe = (fn) => { try { return fn(); } catch { return null; } };
+const safe = (fn) => {
+  try {
+    return fn();
+  } catch {
+    return null;
+  }
+};
 
 export const tokenStore = {
   get: () => safe(() => localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY)),
   getRefresh: () => safe(() => localStorage.getItem(REFRESH_KEY) || sessionStorage.getItem(REFRESH_KEY)),
-  set: (accessToken, refreshToken, remember = true) => safe(() => {
-    const store = remember ? localStorage : sessionStorage;
-    store.setItem(TOKEN_KEY, accessToken);
-    if (refreshToken) store.setItem(REFRESH_KEY, refreshToken);
-  }),
+  set: (accessToken, refreshToken, remember = true) =>
+    safe(() => {
+      const store = remember ? localStorage : sessionStorage;
+      store.setItem(TOKEN_KEY, accessToken);
+      if (refreshToken) store.setItem(REFRESH_KEY, refreshToken);
+    }),
   // Keeps the token in whichever storage it already lives in.
-  update: (accessToken, refreshToken) => safe(() => {
-    const store = sessionStorage.getItem(TOKEN_KEY) ? sessionStorage : localStorage;
-    store.setItem(TOKEN_KEY, accessToken);
-    if (refreshToken) store.setItem(REFRESH_KEY, refreshToken);
-  }),
-  clear: () => safe(() => {
-    [localStorage, sessionStorage].forEach((s) => { s.removeItem(TOKEN_KEY); s.removeItem(REFRESH_KEY); });
-  }),
+  update: (accessToken, refreshToken) =>
+    safe(() => {
+      const store = sessionStorage.getItem(TOKEN_KEY) ? sessionStorage : localStorage;
+      store.setItem(TOKEN_KEY, accessToken);
+      if (refreshToken) store.setItem(REFRESH_KEY, refreshToken);
+    }),
+  clear: () =>
+    safe(() => {
+      [localStorage, sessionStorage].forEach((s) => {
+        s.removeItem(TOKEN_KEY);
+        s.removeItem(REFRESH_KEY);
+      });
+    }),
 };
 
 // Fired when the session can't be recovered; AuthProvider listens and resets.
@@ -111,9 +123,12 @@ async function refreshAccessToken() {
       body: JSON.stringify(refreshToken ? { refreshToken } : {}),
     });
     const json = await res.json().catch(() => ({}));
-    if (!res.ok || !json.data?.accessToken) throw new ApiError('Your session has expired. Please log in again.', 401);
+    if (!res.ok || !json.data?.accessToken)
+      throw new ApiError('Your session has expired. Please log in again.', 401);
     tokenStore.update(json.data.accessToken, json.data.refreshToken);
-  })().finally(() => { refreshing = null; });
+  })().finally(() => {
+    refreshing = null;
+  });
   return refreshing;
 }
 
@@ -149,7 +164,9 @@ async function request(method, path, { params, body, raw = false, retry = true }
       try {
         await refreshAccessToken();
         return request(method, path, { params, body, raw, retry: false });
-      } catch { /* fall through to logout */ }
+      } catch {
+        /* fall through to logout */
+      }
     }
     forceLogout(message);
     throw new ApiError(message, 401, json);
