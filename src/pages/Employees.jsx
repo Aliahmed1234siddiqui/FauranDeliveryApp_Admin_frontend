@@ -172,7 +172,7 @@ export default function Employees() {
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const list = useList(employeesApi.list, FILTERS);
-  const perms = useApi(() => accountApi.permissions(), []);
+  const perms = useApi(() => accountApi.permissions(), [], { key: 'permissions' });
   const [run, pending] = useAction();
   const permissions = perms.data || [];
   const isSelf = (e) => e._id === admin?._id;

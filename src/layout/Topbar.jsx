@@ -26,7 +26,7 @@ function Notifications() {
   const close = useCallback(() => setOpen(false), []);
   useClickOutside(ref, close, open);
   const { navigate } = useRouter();
-  const { data, setData } = useApi(() => notificationsApi.list({ limit: 15 }), []);
+  const { data, setData } = useApi(() => notificationsApi.list({ limit: 15 }), [], { key: 'notifications' });
   const list = data?.notifications || [];
   const unread = data?.unreadCount || 0;
 
@@ -85,7 +85,7 @@ export default function Topbar({ crumbs, onMenu, onOpenSearch, theme, onToggleTh
   const { admin, logout, previewAs, setPreviewAs } = useAuth();
   const { navigate } = useRouter();
   // Super admins can preview the portal as one of their active employees.
-  const team = useApi(() => (admin?.isSuperAdmin ? employeesApi.list({ status: 'active', limit: 5 }) : Promise.resolve(null)), [admin?._id]);
+  const team = useApi(() => (admin?.isSuperAdmin ? employeesApi.list({ status: 'active', limit: 5 }) : Promise.resolve(null)), [admin?._id], { key: 'team-preview' });
   const previewable = team.data?.items || [];
 
   return (

@@ -50,8 +50,8 @@ function PermissionTile({ perm, on, onOpen }) {
 export default function Profile() {
   const { can, previewAs } = useAuth();
   const { navigate } = useRouter();
-  const me = useApi(() => accountApi.me(), []);
-  const perms = useApi(() => accountApi.permissions(), []);
+  const me = useApi(() => accountApi.me(), [], { key: 'me' });
+  const perms = useApi(() => accountApi.permissions(), [], { key: 'permissions' });
   const m = me.data;
   // While previewing, show the previewed employee's access (what `can` checks); otherwise the real record.
   const has = (key) => (previewAs ? can(key) : Boolean(m && (m.isSuperAdmin || m.permissions?.includes(key))));

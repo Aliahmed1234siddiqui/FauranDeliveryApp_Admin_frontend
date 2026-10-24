@@ -20,7 +20,7 @@ const failureLabel = (reason) => (reason ? FAILURE_REASONS[reason] || titleCase(
 const methodLabel = (m) => PAYMENT_METHODS[m] || m;
 
 export default function OrderDetail({ params }) {
-  const { data, loading, error, reload } = useApi(() => ordersApi.get(params.id), [params.id]);
+  const { data, loading, error, reload } = useApi(() => ordersApi.get(params.id), [params.id], { key: 'order' });
   const [dialog, setDialog] = useState(null);
   const [run, pending] = useAction();
 

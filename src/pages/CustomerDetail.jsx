@@ -9,14 +9,23 @@ import { ConfirmDialog } from '../ui/overlays';
 import { BackLink, DetailSkeleton } from './shared';
 
 export default function CustomerDetail({ params }) {
-  const { data, loading, error, reload } = useApi(() => customersApi.get(params.id), [params.id]);
+  console.log(params)
+  const { data, loading, error, reload } = useApi(() => customersApi.get(params.id), [params.id], { key: 'customer' });
   const [run, pending] = useAction();
   const [blocking, setBlocking] = useState(false);
 
   if (loading && !data) return <DetailSkeleton />;
   if (error && !data) return <ErrorState error={error} onRetry={reload} />;
 
-  const { customer: c, stats, addresses, orders } = data;
+  // The backend may omit sections (or send the customer unwrapped), so default everything.
+  const c = data?.customer || data || {};
+  const stats = {
+    totalOrders: c.totalOrders, totalSpent: c.totalSpent, lastOrderAt: c.lastOrderAt,
+    deliveredOrders: 0, cancelledOrders: 0,
+    ...(data?.stats || {}),
+  };
+  const addresses = Array.isArray(data?.addresses) ? data.addresses : (Array.isArray(c.addresses) ? c.addresses : []);
+  const orders = Array.isArray(data?.orders) ? data.orders : (Array.isArray(data?.recentOrders) ? data.recentOrders : []);
 
   const setActive = (isActive, reason) => run(() => customersApi.setActive(c._id, isActive, reason || undefined), { success: isActive ? 'Account unblocked' : 'Account blocked' })
     .then(() => { setBlocking(false); reload(); }).catch(() => {});
@@ -78,8 +87,8 @@ export default function CustomerDetail({ params }) {
           <Card title="Saved addresses">
             {addresses.length ? (
               <div className="list">
-                {addresses.map((a) => (
-                  <div key={a.addressId} className="list-item">
+                {addresses.map((a, i) => (
+                  <div key={a.addressId || a._id || i} className="list-item">
                     <span className="identity-icon"><MapPin size={16} /></span>
                     <span className="text-2">
                       {a.label && <strong>{a.label} </strong>}

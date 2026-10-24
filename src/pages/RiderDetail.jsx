@@ -15,9 +15,9 @@ const riderNowStatus = (r) => (!r.isOnline ? 'offline' : r.isAvailable ? 'availa
 export default function RiderDetail({ params }) {
   const { navigate } = useRouter();
   const { can } = useAuth();
-  const { data, loading, error, reload, setData } = useApi(() => ridersApi.get(params.id), [params.id]);
+  const { data, loading, error, reload, setData } = useApi(() => ridersApi.get(params.id), [params.id], { key: 'rider' });
   // Earnings vs. COD position comes from the payouts ledger (payments permission only).
-  const ledger = useApi(() => (can('payments') ? payoutsApi.ledger(params.id) : Promise.resolve(null)), [params.id]);
+  const ledger = useApi(() => (can('payments') ? payoutsApi.ledger(params.id) : Promise.resolve(null)), [params.id], { key: 'rider-ledger' });
 
   if (loading && !data) return <DetailSkeleton />;
   if (error && !data) return <ErrorState error={error} onRetry={reload} />;

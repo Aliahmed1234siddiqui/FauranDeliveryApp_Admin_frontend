@@ -238,7 +238,7 @@ function MasterFormBody({ item, categories, onClose, onSaved }) {
 function MasterDetail({ item, editable, onClose, onEdit, onDelete }) {
   const { navigate } = useRouter();
   const { can } = useAuth();
-  const { data, loading, error, reload } = useApi(() => masterCatalogApi.get(item._id), [item._id]);
+  const { data, loading, error, reload } = useApi(() => masterCatalogApi.get(item._id), [item._id], { key: 'master-item' });
   const m = data || item;
   const listings = data?.listings;
 
@@ -316,7 +316,7 @@ function TreeSub({ node, onOpen }) {
 }
 
 function TreeView({ search, isActive, onOpen }) {
-  const { data, loading, error, reload } = useApi(() => masterCatalogApi.tree({ isActive }), [isActive]);
+  const { data, loading, error, reload } = useApi(() => masterCatalogApi.tree({ isActive }), [isActive], { key: 'master-tree' });
   const [open, setOpen] = useState({});
   if (loading && !data) return <Skeleton h={300} r={16} />;
   if (error && !data) return <ErrorState error={error} onRetry={reload} />;
@@ -363,7 +363,7 @@ export default function MasterCatalog() {
   const editable = can('catalog');
   const [view, setView] = useQueryState('view', 'list');
   const list = useList(masterCatalogApi.list, FILTERS, { limit: 10 });
-  const categories = useApi(() => categoriesApi.list(), []);
+  const categories = useApi(() => categoriesApi.list(), [], { key: 'categories' });
   const [viewing, setViewing] = useState(null);
   const [editing, setEditing] = useState(null);
   const [creating, setCreating] = useState(false);

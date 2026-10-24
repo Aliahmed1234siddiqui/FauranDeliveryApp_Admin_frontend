@@ -27,9 +27,9 @@ export default function Riders() {
   const { navigate } = useRouter();
   const { can } = useAuth();
   const list = useList(ridersApi.list, FILTERS, { limit: 8 });
-  const counts = useApi(loadCounts, []).data;
+  const counts = useApi(loadCounts, [], { key: 'rider-counts' }).data;
   // COD still held by riders lives in the payouts module (needs the payments permission).
-  const cod = useApi(() => (can('payments') ? payoutsApi.riderBalances() : Promise.resolve(null)), []).data;
+  const cod = useApi(() => (can('payments') ? payoutsApi.riderBalances() : Promise.resolve(null)), [], { key: 'rider-cod' }).data;
   const codInHand = cod?.reduce((s, r) => s + (r.cashInHand || 0), 0);
   const open = (r) => navigate(`/riders/${r.riderId}`);
 

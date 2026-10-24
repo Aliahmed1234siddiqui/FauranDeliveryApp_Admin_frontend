@@ -1,9 +1,11 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { Compass, Eye, Lock } from 'lucide-react';
 import { RouterProvider, matchPath, useRouter } from './lib/router';
 import { AuthProvider, useAuth } from './lib/auth';
 import { useApi } from './lib/hooks';
+import { queryClient } from './lib/queryClient';
 import { dashboardApi } from './services/api';
 import Sidebar from './layout/Sidebar';
 import Topbar from './layout/Topbar';
@@ -32,6 +34,10 @@ const Reports = lazy(() => import('./pages/Reports'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Employees = lazy(() => import('./pages/Employees'));
 const Profile = lazy(() => import('./pages/Profile'));
+// Cache inspector, only in `npm run dev` (dropped from production builds).
+const QueryDevtools = import.meta.env.DEV
+  ? lazy(() => import('@tanstack/react-query-devtools').then((m) => ({ default: m.ReactQueryDevtools })))
+  : () => null;
 
 // Order matters: static segments ("/riders/live") must come before params ("/riders/:id").
 const ROUTES = [
@@ -133,7 +139,7 @@ function Shell() {
   }, []);
 
   // Pending-approval counts for the sidebar badges; refreshed when the section changes.
-  const { data: summary } = useApi(() => (can('dashboard') ? dashboardApi.summary() : Promise.resolve(null)), [pathname.split('/')[1]]);
+  const { data: summary } = useApi(() => (can('dashboard') ? dashboardApi.summary() : Promise.resolve(null)), [pathname.split('/')[1]], { key: 'nav-badges' });
   const badges = {
     vendors: summary?.users?.vendors?.pending,
     riders: summary?.users?.riders?.pending,
@@ -193,11 +199,14 @@ function Gate() {
 
 export default function App() {
   return (
-    <RouterProvider>
-      <AuthProvider>
-        <Gate />
-        <Toaster position="bottom-right" toastOptions={{ className: 'toast', duration: 3500, success: { iconTheme: { primary: '#13805a', secondary: '#fff' } } }} />
-      </AuthProvider>
-    </RouterProvider>
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider>
+        <AuthProvider>
+          <Gate />
+          <Toaster position="bottom-right" toastOptions={{ className: 'toast', duration: 3500, success: { iconTheme: { primary: '#3f9b5c', secondary: '#fff' } } }} />
+        </AuthProvider>
+      </RouterProvider>
+      <Suspense fallback={null}><QueryDevtools initialIsOpen={false} buttonPosition="bottom-left" /></Suspense>
+    </QueryClientProvider>
   );
 }

@@ -147,7 +147,7 @@ export default function Inventory() {
   const { navigate } = useRouter();
   const { can } = useAuth();
   const [threshold, setThreshold] = useQueryState('threshold');
-  const { data, loading, error, reload } = useApi(() => inventoryApi.overview({ threshold }), [threshold]);
+  const { data, loading, error, reload } = useApi(() => inventoryApi.overview({ threshold }), [threshold], { key: 'inventory-overview' });
   const canProducts = can('products');
 
   const openProduct = (p) => navigate(`/products?search=${encodeURIComponent(p.productId || p.name)}`);

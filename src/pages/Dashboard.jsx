@@ -37,7 +37,7 @@ const StatSkeletons = ({ count }) => Array.from({ length: count }).map((_, i) =>
 function SalesCard({ range, setRange }) {
   const { can } = useAuth();
   const [metric, setMetric] = useState('orderCount');
-  const sales = useApi(() => (can('reports', 'dashboard') ? dashboardApi.sales({ groupBy: 'day', ...lastDays(range) }) : nothing()), [range]);
+  const sales = useApi(() => (can('reports', 'dashboard') ? dashboardApi.sales({ groupBy: 'day', ...lastDays(range) }) : nothing()), [range], { key: 'dashboard-sales' });
   const rows = sales.data || [];
   const totals = rows.reduce((t, r) => ({ orders: t.orders + r.orderCount, sales: t.sales + r.totalSales, commission: t.commission + r.platformCommission }), { orders: 0, sales: 0, commission: 0 });
   const isMoney = metric !== 'orderCount';
@@ -85,7 +85,7 @@ function SalesCard({ range, setRange }) {
 
 function TopStoresCard() {
   const { navigate } = useRouter();
-  const commission = useApi(() => dashboardApi.commission(), []);
+  const commission = useApi(() => dashboardApi.commission(), [], { key: 'dashboard-commission' });
   // Older backends return { vendorName, totalRevenue, totalCommission }; reports use vendorRow names.
   const items = (commission.data || []).slice(0, 5).map((c) => ({
     key: c.vendorId || c._id,
@@ -105,7 +105,7 @@ function TopStoresCard() {
 
 function LowStockCard() {
   const { navigate } = useRouter();
-  const lowStock = useApi(() => inventoryApi.lowStock(), []);
+  const lowStock = useApi(() => inventoryApi.lowStock(), [], { key: 'low-stock' });
   const rows = lowStock.data || [];
   return (
     <Card title="Low stock alerts" subtitle="Below the low-stock threshold" action={<Button variant="ghost" size="sm" onClick={() => navigate('/inventory')}>Inventory</Button>}>
@@ -140,7 +140,7 @@ export default function Dashboard() {
   const { admin, can } = useAuth();
   const { navigate } = useRouter();
   const [range, setRange] = useState('14');
-  const summary = useApi(() => (can('dashboard') ? dashboardApi.summary() : nothing()), []);
+  const summary = useApi(() => (can('dashboard') ? dashboardApi.summary() : nothing()), [], { key: 'dashboard-summary' });
   const s = summary.data;
   const pendingApprovals = s ? s.users.vendors.pending + s.users.riders.pending : 0;
   const statuses = s ? ORDER_STATUSES.filter((k) => s.orders.byStatus?.[k]) : [];

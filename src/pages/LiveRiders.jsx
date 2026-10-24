@@ -48,7 +48,7 @@ export default function LiveRiders() {
   const [search, setSearch] = useState('');
   const [paused, setPaused] = useState(false);
   const [updatedAt, setUpdatedAt] = useState(null);
-  const { data, loading, error, reload, setData } = useApi(() => ridersApi.live().then((rows) => { setUpdatedAt(Date.now()); return rows; }), []);
+  const { data, loading, error, reload, setData } = useApi(() => ridersApi.live().then((rows) => { setUpdatedAt(Date.now()); return rows; }), [], { key: 'live-riders', staleTime: 0 });
 
   // Polling fallback for when the socket is unavailable.
   useEffect(() => {

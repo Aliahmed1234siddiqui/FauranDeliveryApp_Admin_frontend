@@ -152,7 +152,7 @@ function CashDepositBody({ riderId: initialId, riders, loading, onClose, onDone 
 
 // GET /admin/payouts/user/:id → { user, balance, settlements }
 function LedgerDrawer({ userId, onClose }) {
-  const { data, loading, error, reload } = useApi(() => (userId ? payoutsApi.ledger(userId) : Promise.resolve(null)), [userId]);
+  const { data, loading, error, reload } = useApi(() => (userId ? payoutsApi.ledger(userId) : Promise.resolve(null)), [userId], { key: 'ledger' });
   const user = data?.user;
   const b = data?.balance || {};
   const isRider = b.cashInHand !== undefined;
@@ -328,10 +328,10 @@ export default function Payouts() {
   const [owes, setOwes] = useQueryState('owes');
   const [payTarget, setPayTarget] = useState(null);
 
-  const vendors = useApi(() => payoutsApi.vendorBalances({ due: due === '1' || undefined }), [due]);
+  const vendors = useApi(() => payoutsApi.vendorBalances({ due: due === '1' || undefined }), [due], { key: 'vendor-balances' });
   // Unfiltered riders feed the stat cards and the cash-deposit picker; the table re-fetches with `owes`.
-  const ridersAll = useApi(() => payoutsApi.riderBalances(), []);
-  const ridersOwes = useApi(() => (owes ? payoutsApi.riderBalances({ owes }) : Promise.resolve(null)), [owes]);
+  const ridersAll = useApi(() => payoutsApi.riderBalances(), [], { key: 'rider-balances' });
+  const ridersOwes = useApi(() => (owes ? payoutsApi.riderBalances({ owes }) : Promise.resolve(null)), [owes], { key: 'rider-balances-owes' });
   const settlements = useList(settlementsApi.list, SETTLEMENT_FILTERS, { limit: 10, defaults: { from: '', to: '' } });
 
   const vendorRows = vendors.data || [];

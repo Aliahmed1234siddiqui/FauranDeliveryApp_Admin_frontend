@@ -208,7 +208,7 @@ function CommissionSettings({ commission, onSaved }) {
 
 export default function Settings() {
   const [section, setSection] = useQueryState('section', 'general');
-  const { data, loading, error, reload } = useApi(() => settingsApi.get(), []);
+  const { data, loading, error, reload } = useApi(() => settingsApi.get(), [], { key: 'settings' });
   // Remount the section after a save so its form starts from the saved values.
   const key = JSON.stringify(data);
 

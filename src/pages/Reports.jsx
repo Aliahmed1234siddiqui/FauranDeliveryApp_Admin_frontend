@@ -50,7 +50,7 @@ function ChartOrTable({ table, chart, label }) {
 
 function SalesTab({ range }) {
   const [groupBy, setGroupBy] = useQueryState('groupBy', 'day');
-  const query = useApi(() => reportsApi.sales({ groupBy, ...range }), [groupBy, range.from, range.to]);
+  const query = useApi(() => reportsApi.sales({ groupBy, ...range }), [groupBy, range.from, range.to], { key: 'report-sales' });
   const unit = REPORT_GROUP_BY.find((g) => g.value === groupBy)?.label || '';
   const periodCol = { key: 'period', header: 'Period', render: (r) => periodLabel(r.period) };
   return (
@@ -106,7 +106,7 @@ function SalesTab({ range }) {
 }
 
 function RevenueTab({ range }) {
-  const query = useApi(() => reportsApi.revenue(range), [range.from, range.to]);
+  const query = useApi(() => reportsApi.revenue(range), [range.from, range.to], { key: 'report-revenue' });
   return (
     <ReportState query={query}>
       {(d) => {
@@ -170,7 +170,7 @@ function RevenueTab({ range }) {
 
 function VendorsTab({ range }) {
   const { navigate } = useRouter();
-  const { data, loading, error, reload } = useApi(() => reportsApi.vendors(range), [range.from, range.to]);
+  const { data, loading, error, reload } = useApi(() => reportsApi.vendors(range), [range.from, range.to], { key: 'report-vendors' });
   const max = Math.max(...(data || []).map((r) => r.totalSales), 1);
   return (
     <Card className="table-card" padded={false}>
@@ -198,7 +198,7 @@ function VendorsTab({ range }) {
 
 function RidersTab({ range }) {
   const { navigate } = useRouter();
-  const { data, loading, error, reload } = useApi(() => reportsApi.riders(range), [range.from, range.to]);
+  const { data, loading, error, reload } = useApi(() => reportsApi.riders(range), [range.from, range.to], { key: 'report-riders' });
   return (
     <Card className="table-card" padded={false}>
       <DataTable
@@ -227,7 +227,7 @@ function RidersTab({ range }) {
 function ForecastTab() {
   const [days, setDays] = useQueryState('days', '30');
   const [horizonDays, setHorizonDays] = useQueryState('horizon', '7');
-  const { data, loading, error, reload } = useApi(() => reportsApi.forecast({ days, horizonDays }), [days, horizonDays]);
+  const { data, loading, error, reload } = useApi(() => reportsApi.forecast({ days, horizonDays }), [days, horizonDays], { key: 'report-forecast' });
   const rows = data || [];
   const restock = rows.filter((r) => r.needsRestock);
   return (

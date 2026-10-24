@@ -13,7 +13,7 @@ import { ApprovalPanel, BackLink, BlockButton, DetailSkeleton, DocumentList } fr
 export default function VendorDetail({ params }) {
   const { navigate } = useRouter();
   const { can } = useAuth();
-  const { data, loading, error, reload, setData } = useApi(() => vendorsApi.get(params.id), [params.id]);
+  const { data, loading, error, reload, setData } = useApi(() => vendorsApi.get(params.id), [params.id], { key: 'vendor' });
 
   if (loading && !data) return <DetailSkeleton />;
   if (error && !data) return <ErrorState error={error} onRetry={reload} />;

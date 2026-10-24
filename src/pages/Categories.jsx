@@ -120,7 +120,7 @@ export default function Categories() {
   const { navigate } = useRouter();
   const { can } = useAuth();
   const editable = can('catalog');
-  const { data, loading, error, reload } = useApi(() => categoriesApi.list(), []);
+  const { data, loading, error, reload } = useApi(() => categoriesApi.list(), [], { key: 'categories' });
   const [modal, setModal] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [search, setSearch] = useState('');

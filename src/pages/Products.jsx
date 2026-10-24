@@ -83,7 +83,7 @@ function ProductFormBody({ product, onClose, onSaved, vendors, categories }) {
   const [errors, setErrors] = useState({});
   const [run, pending] = useAction();
   // Master items can only be picked when creating a listing.
-  const masters = useApi(() => (product ? Promise.resolve(null) : masterCatalogApi.list({ isActive: true, limit: 500 })), []);
+  const masters = useApi(() => (product ? Promise.resolve(null) : masterCatalogApi.list({ isActive: true, limit: 500 })), [], { key: 'master-options' });
 
   const fromMaster = !!form.masterProductId;
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e?.target ? e.target.value : e }));
@@ -186,7 +186,7 @@ function useCounts() {
     const count = (params) => productsApi.list({ ...params, limit: 1 }).then((r) => r.total);
     const [all, pending, low, out] = await Promise.all([count({}), count({ approval: 'pending' }), count({ stock: 'low' }), count({ stock: 'out' })]);
     return { all, pending, low, out };
-  }, []);
+  }, [], { key: 'product-counts' });
 }
 
 const thumb = (p) => (p.images?.[0] ? <img src={p.images[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 10 }} /> : undefined);
@@ -200,8 +200,8 @@ export default function Products() {
   const [deleting, setDeleting] = useState(null);
   const [rejecting, setRejecting] = useState(null);
   const [run, pending] = useAction();
-  const vendors = useApi(() => vendorsApi.list({ status: 'approved', limit: 500 }), []);
-  const categories = useApi(() => categoriesApi.list(), []);
+  const vendors = useApi(() => vendorsApi.list({ status: 'approved', limit: 500 }), [], { key: 'approved-vendors' });
+  const categories = useApi(() => categoriesApi.list(), [], { key: 'categories' });
   const counts = useCounts();
   const c = counts.data;
   const refresh = () => { list.reload(); counts.reload(); };

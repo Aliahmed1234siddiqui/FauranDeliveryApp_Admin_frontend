@@ -21,7 +21,7 @@ const loadCounts = () => Promise.all([
 export default function Vendors() {
   const { navigate } = useRouter();
   const list = useList(vendorsApi.list, FILTERS, { limit: 8 });
-  const counts = useApi(loadCounts, []).data;
+  const counts = useApi(loadCounts, [], { key: 'vendor-counts' }).data;
   const open = (v) => navigate(`/vendors/${v.vendorId}`);
 
   const columns = [

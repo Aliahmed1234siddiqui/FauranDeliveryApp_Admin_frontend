@@ -32,9 +32,9 @@ export default function Orders() {
   const list = useList(ordersApi.list, FILTERS, { defaults: { from: '', to: '' } });
   const { filters } = list;
   const canSeeVendors = can('vendors', 'dashboard');
-  const vendors = useApi(() => (canSeeVendors ? vendorsApi.list({ status: 'approved', limit: 500 }) : Promise.resolve({ items: [] })), [canSeeVendors]);
+  const vendors = useApi(() => (canSeeVendors ? vendorsApi.list({ status: 'approved', limit: 500 }) : Promise.resolve({ items: [] })), [canSeeVendors], { key: 'order-vendor-filter' });
   // Only the failed-delivery tab gets a count: one `limit: 1` request for its total.
-  const failed = useApi(() => ordersApi.list({ status: 'delivery_failed', limit: 1 }), []);
+  const failed = useApi(() => ordersApi.list({ status: 'delivery_failed', limit: 1 }), [], { key: 'failed-deliveries' });
   const failedCount = failed.data?.total || 0;
 
   const vendorItems = vendors.data?.items || [];

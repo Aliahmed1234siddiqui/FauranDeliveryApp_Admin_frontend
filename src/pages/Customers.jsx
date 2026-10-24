@@ -20,7 +20,7 @@ export default function Customers() {
     countCustomers({ status: 'active' }),
     countCustomers({ status: 'inactive' }),
     countCustomers({ verified: true }),
-  ]), []);
+  ]), [], { key: 'customer-counts' });
   const [total, active, inactive, verified] = counts.data || [];
   const [run] = useAction();
 

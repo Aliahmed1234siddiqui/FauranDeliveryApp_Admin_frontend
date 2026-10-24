@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { accountApi, authApi } from '../services/api';
 import { LOGOUT_EVENT, tokenStore } from '../services/http';
 import { connectSocket, disconnectSocket } from '../services/socket';
+import { queryClient } from './queryClient';
 
 const AuthContext = createContext(null);
 
@@ -23,7 +24,7 @@ export function AuthProvider({ children }) {
 
   // http.js fires this when the token can't be refreshed or the account is blocked.
   useEffect(() => {
-    const onLogout = () => { disconnectSocket(); setPreviewAs(null); setAdmin(null); };
+    const onLogout = () => { disconnectSocket(); queryClient.clear(); setPreviewAs(null); setAdmin(null); };
     window.addEventListener(LOGOUT_EVENT, onLogout);
     return () => window.removeEventListener(LOGOUT_EVENT, onLogout);
   }, []);
@@ -43,9 +44,13 @@ export function AuthProvider({ children }) {
     try { await authApi.logout(); } catch { /* clear local state regardless */ }
     tokenStore.clear();
     disconnectSocket();
+    queryClient.clear(); // the next admin must never see this one's cached data
     setPreviewAs(null);
     setAdmin(null);
   }, []);
+
+  // Permission-gated calls return null for missing permissions, so re-load everything when the preview role changes.
+  useEffect(() => { queryClient.resetQueries(); }, [previewAs]);
 
   const value = useMemo(() => {
     const effective = previewAs ? { ...admin, isSuperAdmin: false, permissions: previewAs.permissions } : admin;
