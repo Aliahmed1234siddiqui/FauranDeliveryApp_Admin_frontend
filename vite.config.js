@@ -13,6 +13,8 @@ export default defineConfig(({ mode }) => {
       proxy: {
         '/api': { target: backend, changeOrigin: true },
         '/socket.io': { target: backend, changeOrigin: true, ws: true },
+        // Legacy image paths from before Cloudinary (see fileUrl in src/config.js).
+        '/uploads': { target: backend, changeOrigin: true },
       },
     },
   }

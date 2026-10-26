@@ -4,7 +4,7 @@ import { useApi } from '../lib/hooks';
 import { useAuth } from '../lib/auth';
 import { useRouter } from '../lib/router';
 import { dashboardApi, inventoryApi } from '../services/api';
-import { compactMoney, compactNum, lastDays, money, num, periodLabel, timeAgo, titleCase } from '../lib/format';
+import { compactMoney, compactNum, karachiHour, lastDays, longToday, money, num, periodLabel, profitOf, riderPayoutOf, timeAgo, titleCase } from '../lib/format';
 import { ORDER_STATUSES, PAYMENT_METHODS } from '../lib/constants';
 import { Badge, Button, Card, EmptyState, ErrorState, Identity, Segmented, Skeleton, StatCard, StatusBadge } from '../ui/primitives';
 import { BarList, LineChart } from '../ui/charts';
@@ -26,9 +26,12 @@ const STATUS_COLORS = {
 const nothing = () => Promise.resolve(null);
 
 function greeting() {
-  const h = new Date().getHours();
+  const h = karachiHour();
   return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
 }
+
+// "Vendor 10% · Rider 7%"
+const ratesLabel = (s) => [s.commissionPercent != null && `Vendor ${s.commissionPercent}%`, s.riderCommissionPercent != null && `Rider ${s.riderCommissionPercent}%`].filter(Boolean).join(' · ');
 
 const StatSkeletons = ({ count }) => Array.from({ length: count }).map((_, i) => (
   <div className="stat-card" key={i}><Skeleton w={38} h={38} r={11} /><div style={{ height: 14 }} /><Skeleton w="50%" /><div style={{ height: 8 }} /><Skeleton w="70%" h={26} /></div>
@@ -39,8 +42,10 @@ function SalesCard({ range, setRange }) {
   const [metric, setMetric] = useState('orderCount');
   const sales = useApi(() => (can('reports', 'dashboard') ? dashboardApi.sales({ groupBy: 'day', ...lastDays(range) }) : nothing()), [range], { key: 'dashboard-sales' });
   const rows = sales.data || [];
-  const totals = rows.reduce((t, r) => ({ orders: t.orders + r.orderCount, sales: t.sales + r.totalSales, commission: t.commission + r.platformCommission }), { orders: 0, sales: 0, commission: 0 });
+  const totals = rows.reduce((t, r) => ({ orders: t.orders + r.orderCount, sales: t.sales + r.totalSales, profit: t.profit + profitOf(r) }), { orders: 0, sales: 0, profit: 0 });
   const isMoney = metric !== 'orderCount';
+  const chartRows = metric === 'profit' ? rows.map((r) => ({ ...r, profit: profitOf(r) })) : rows;
+  const seriesLabel = { orderCount: 'Orders', totalSales: 'Sales', profit: 'Total profit' }[metric];
 
   let body;
   if (sales.error && !sales.data) body = <ErrorState error={sales.error} onRetry={sales.reload} />;
@@ -52,12 +57,12 @@ function SalesCard({ range, setRange }) {
         <div className="chart-headline">
           <div><span>Delivered orders</span><strong>{num(totals.orders)}</strong></div>
           <div><span>Total sales</span><strong>{compactMoney(totals.sales)}</strong></div>
-          <div><span>Commission</span><strong>{compactMoney(totals.commission)}</strong></div>
+          <div><span>Total profit</span><strong>{compactMoney(totals.profit)}</strong></div>
         </div>
         <LineChart
-          data={rows}
+          data={chartRows}
           x="period"
-          series={[{ key: metric, label: isMoney ? 'Sales' : 'Orders', color: 'var(--chart-brand)' }]}
+          series={[{ key: metric, label: seriesLabel, color: 'var(--chart-brand)' }]}
           formatX={periodLabel}
           formatY={(v) => (isMoney ? compactMoney(v).replace('Rs. ', '') : compactNum(v))}
           formatTip={(v) => (isMoney ? money(v) : num(v))}
@@ -73,7 +78,7 @@ function SalesCard({ range, setRange }) {
       subtitle={`Delivered orders, last ${range} days`}
       action={(
         <>
-          <Segmented value={metric} onChange={setMetric} options={[{ value: 'orderCount', label: 'Orders' }, { value: 'totalSales', label: 'Sales' }]} />
+          <Segmented value={metric} onChange={setMetric} options={[{ value: 'orderCount', label: 'Orders' }, { value: 'totalSales', label: 'Sales' }, { value: 'profit', label: 'Profit' }]} />
           <Segmented value={range} onChange={setRange} options={[{ value: '7', label: '7D' }, { value: '14', label: '14D' }, { value: '30', label: '30D' }]} />
         </>
       )}
@@ -91,7 +96,7 @@ function TopStoresCard() {
     key: c.vendorId || c._id,
     label: c.storeName || c.vendorName,
     value: c.totalRevenue ?? c.totalSales ?? 0,
-    meta: `${compactMoney(c.totalCommission ?? c.platformCommission)} comm.`,
+    meta: `${compactMoney(c.totalCommission ?? c.platformCommission)} commission`,
   }));
   return (
     <Card title="Top stores by sales" subtitle="Commission earned per vendor" action={<Button variant="ghost" size="sm" onClick={() => navigate('/reports?tab=vendors')}>Report</Button>}>
@@ -127,6 +132,35 @@ function LowStockCard() {
   );
 }
 
+// Furan's earnings and what it passes on, from summary.revenue (Pakistan-time periods).
+function EarningsCard({ summary: s }) {
+  const periods = [['today', 'Today'], ['thisMonth', 'This month'], ['allTime', 'All time']];
+  const rows = [
+    ['Commission from vendors', (r) => r.platformCommission],
+    ['Commission from riders', (r) => r.riderCommission],
+    ['Total profit', profitOf, true],
+    ['Paid to vendors', (r) => r.vendorPayout],
+    ['Paid to riders', riderPayoutOf],
+  ];
+  return (
+    <Card title="Fauran Mart earnings" subtitle={`Commission rates: ${ratesLabel(s)}`} className="card-flush">
+      <div className="table-scroll" style={{ marginTop: 12 }}>
+        <table className="table">
+          <thead><tr><th>Delivered orders</th>{periods.map(([k, label]) => <th key={k} style={{ textAlign: 'right' }}>{label}</th>)}</tr></thead>
+          <tbody>
+            {rows.map(([label, get, strong]) => (
+              <tr key={label}>
+                <td className={strong ? 'cell-strong' : undefined}>{label}</td>
+                {periods.map(([k]) => <td key={k} style={{ textAlign: 'right' }} className={strong ? 'cell-strong pos' : undefined}>{money(get(s.revenue[k] || {}))}</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  );
+}
+
 function RankCard({ title, subtitle, rows, onItemClick, toItem }) {
   return (
     <Card title={title} subtitle={subtitle}>
@@ -150,7 +184,7 @@ export default function Dashboard() {
       <div className="hero">
         <div>
           <h1>{greeting()}, {admin?.name?.split(' ')[0]} 👋</h1>
-          <p>Here&apos;s what&apos;s happening across Fauran Mart today, {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}.</p>
+          <p>Here&apos;s what&apos;s happening across Fauran Mart today, {longToday()}.</p>
         </div>
         {s && (
           <div className="hero-chips">
@@ -175,8 +209,8 @@ export default function Dashboard() {
           <>
             <StatCard icon={ShoppingBag} label="Orders today" value={num(s.orders.today)} footer={`${num(s.revenue.today.orders)} delivered so far`} onClick={() => navigate('/orders')} />
             <StatCard icon={Receipt} tone="amber" label="Sales today" value={compactMoney(s.revenue.today.totalSales)} footer="Products + delivery, delivered orders" />
-            <StatCard icon={Percent} tone="violet" label="Commission today" value={compactMoney(s.revenue.today.platformCommission)} footer={`${s.commissionPercent}% of product sales`} />
-            <StatCard icon={CalendarDays} tone="blue" label="Sales this month" value={compactMoney(s.revenue.thisMonth.totalSales)} footer={`${num(s.revenue.thisMonth.orders)} orders · ${compactMoney(s.revenue.thisMonth.platformCommission)} commission`} />
+            <StatCard icon={Percent} tone="violet" label="Total profit today" value={compactMoney(profitOf(s.revenue.today))} footer={`${compactMoney(s.revenue.today.platformCommission)} from vendors · ${compactMoney(s.revenue.today.riderCommission)} from riders`} />
+            <StatCard icon={CalendarDays} tone="blue" label="Sales this month" value={compactMoney(s.revenue.thisMonth.totalSales)} footer={`${num(s.revenue.thisMonth.orders)} orders · ${compactMoney(profitOf(s.revenue.thisMonth))} total profit`} />
           </>
         ) : !summary.error && <StatSkeletons count={4} />}
       </div>
@@ -231,7 +265,8 @@ export default function Dashboard() {
       </div>
 
       {s && (
-        <div className="grid grid-2 mb">
+        <div className="grid grid-3 mb">
+          <EarningsCard summary={s} />
           <RankCard
             title="Top vendors"
             subtitle="Most delivered orders"

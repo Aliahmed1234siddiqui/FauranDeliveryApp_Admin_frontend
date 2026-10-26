@@ -7,7 +7,7 @@ import { useList } from '../lib/useList';
 import { accountApi, employeesApi } from '../services/api';
 import { withAll } from '../lib/constants';
 import { date, timeAgo, titleCase } from '../lib/format';
-import { Badge, Button, Card, EmptyState, Field, Identity, Input, PageHeader, SearchInput, Segmented, Select, StatCard, StatusBadge, Toggle } from '../ui/primitives';
+import { Badge, Button, Card, Code, EmptyState, Field, Identity, Input, PageHeader, SearchInput, Segmented, Select, StatCard, StatusBadge, Toggle } from '../ui/primitives';
 import { ConfirmDialog, Drawer, Menu } from '../ui/overlays';
 import DataTable, { Pagination } from '../ui/DataTable';
 
@@ -182,7 +182,7 @@ export default function Employees() {
 
   const columns = [
     { key: 'name', header: 'Employee', render: (e) => <Identity name={e.name} sub={e.email} /> },
-    { key: 'role', header: 'Designation', hideOnMobile: true, render: (e) => <><span className="cell-strong">{e.designation || '—'}</span><span className="cell-sub">{e.employeeId}</span></> },
+    { key: 'role', header: 'Designation', hideOnMobile: true, render: (e) => <><span className="cell-strong">{e.designation || '—'}</span><span className="cell-sub"><Code>{e.employeeId}</Code></span></> },
     {
       key: 'perms',
       header: 'Access',
@@ -220,7 +220,7 @@ export default function Employees() {
       </div>
       <Card className="table-card" padded={false}>
         <div className="toolbar">
-          <SearchInput value={list.search} onChange={list.setSearch} placeholder="Search name, email, phone or id" />
+          <SearchInput value={list.search} onChange={list.setSearch} placeholder="Search name, email, phone or EMP id" />
           <Segmented value={list.filters.status} onChange={(v) => list.setFilter('status', v)} options={withAll('All', ['active', 'inactive'], titleCase)} />
           <div className="spacer" />
           <Select value={list.filters.permission} onChange={(v) => list.setFilter('permission', v)} options={withAll('Any permission', permissions.map((p) => p.key), titleCase)} aria-label="Filter by permission" />

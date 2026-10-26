@@ -108,7 +108,7 @@ function PerformanceCard({ stats, rating, totalRatings }) {
         <div className="mini-stat"><span>Cancelled</span><strong>{num(stats.cancelledOrders)}</strong></div>
       </div>
       <div style={{ marginTop: 18 }}>
-        <KeyValue items={[['Platform commission', money(stats.platformCommission)], ['Vendor payout', money(stats.vendorPayout)]]} />
+        <KeyValue items={[['Commission from vendor', money(stats.platformCommission)], ['Vendor payout', money(stats.vendorPayout)]]} />
       </div>
       {stats.totalOrders > 0 && (
         <div style={{ marginTop: 18 }}>

@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { AlertTriangle, Bell, Bike, CheckCheck, ChevronRight, Eye, LogOut, Menu as MenuIcon, Moon, RotateCcw, Search, Store, Sun, UserRound } from 'lucide-react';
+import { AlertTriangle, Bell, Bike, CheckCheck, ChevronRight, Copy, Eye, LogOut, Menu as MenuIcon, Moon, RotateCcw, Search, Store, Sun, UserRound } from 'lucide-react';
 import { Link, useRouter } from '../lib/router';
 import { useAuth } from '../lib/auth';
 import { useApi, useClickOutside } from '../lib/hooks';
@@ -7,6 +7,7 @@ import { timeAgo } from '../lib/format';
 import { employeesApi, notificationsApi } from '../services/api';
 import { useSocketEvent } from '../services/socket';
 import { Avatar } from '../ui/primitives';
+import { copyText } from '../lib/clipboard';
 import { Menu } from '../ui/overlays';
 
 // Admin alerts sent today (handbook 18): vendor/rider documents uploaded,
@@ -83,6 +84,7 @@ function Notifications() {
 
 export default function Topbar({ crumbs, onMenu, onOpenSearch, theme, onToggleTheme }) {
   const { admin, logout, previewAs, setPreviewAs } = useAuth();
+  const myId = admin?.adminId || admin?.employeeId; // ADM… or EMP…
   const { navigate } = useRouter();
   // Super admins can preview the portal as one of their active employees.
   const team = useApi(() => (admin?.isSuperAdmin ? employeesApi.list({ status: 'active', limit: 5 }) : Promise.resolve(null)), [admin?._id], { key: 'team-preview' });
@@ -118,6 +120,7 @@ export default function Topbar({ crumbs, onMenu, onOpenSearch, theme, onToggleTh
             </button>
           )}
           items={[
+            myId && { label: `My id: ${myId}`, icon: Copy, onClick: () => copyText(myId) },
             { label: 'My profile & access', icon: UserRound, onClick: () => navigate('/profile') },
             ...(previewable.length ? ['divider', ...previewable.map((e) => ({ label: `Preview as ${e.name.split(' ')[0]}${e.designation ? ` (${e.designation})` : ''}`, icon: Eye, onClick: () => { setPreviewAs(e); navigate('/'); } }))] : []),
             previewAs && { label: 'Stop preview', icon: RotateCcw, onClick: () => setPreviewAs(null) },

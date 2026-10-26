@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react';
-import { ArrowRight, Bike, MapPinOff, Pause, Phone, Play, RefreshCw } from 'lucide-react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { ArrowRight, Bike, Maximize2, MapPinOff, Pause, Phone, Play, RefreshCw } from 'lucide-react';
+import L from 'leaflet';
+import { MapContainer, Marker, TileLayer, useMap } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 import { useApi } from '../lib/hooks';
 import { Link, useQueryState, useRouter } from '../lib/router';
 import { ridersApi } from '../services/api';
 import { useSocketEvent } from '../services/socket';
-import { timeAgo, titleCase } from '../lib/format';
+import { time, timeAgo, titleCase } from '../lib/format';
 import { Avatar, Button, Card, Code, EmptyState, ErrorState, KeyValue, PageHeader, SearchInput, Segmented, StatusBadge } from '../ui/primitives';
 
 // The deployed backend can't hold Socket.IO connections, so socket events may
@@ -16,29 +19,77 @@ const hasGps = (r) => Boolean(r.location?.lat || r.location?.lng);
 const riderStatus = (r) => (r.isAvailable ? 'available' : 'busy');
 const PIN_CLASS = { busy: 'is-delivering', available: 'is-idle' };
 
-/**
- * Project real lat/lng onto the stylised CSS map (percent left/top).
- * Take the bounding box of the pinned riders, enforce a minimum size so one
- * rider (or a tight cluster) doesn't zoom in absurdly, then map it into the
- * 10%-90% band so pins never sit on the edge. Axes are scaled independently -
- * good enough for "who is where", not a real map projection.
- */
-const MIN_SPAN = 0.02; // degrees, roughly 2 km
-function makeProjection(points) {
-  if (!points.length) return () => ({ left: 50, top: 50 });
-  const lats = points.map((p) => p.lat);
-  const lngs = points.map((p) => p.lng);
-  const span = (min, max) => {
-    const pad = Math.max(max - min, MIN_SPAN) / 2;
-    const mid = (min + max) / 2;
-    return [mid - pad, mid + pad];
-  };
-  const [south, north] = span(Math.min(...lats), Math.max(...lats));
-  const [west, east] = span(Math.min(...lngs), Math.max(...lngs));
-  return ({ lat, lng }) => ({
-    left: 10 + ((lng - west) / (east - west)) * 80,
-    top: 10 + ((north - lat) / (north - south)) * 80, // north is up
+// Map opens on Karachi until the first riders load, then fits to them.
+const DEFAULT_CENTER = [24.8607, 67.0011];
+const DEFAULT_ZOOM = 12;
+const FOCUS_ZOOM = 16;
+const FIT_OPTS = { padding: [60, 60], maxZoom: FOCUS_ZOOM - 1 };
+
+// Lucide "bike" as a raw string - Leaflet divIcons take HTML, not React nodes.
+const BIKE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>';
+const escapeHtml = (s) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
+function riderIcon(status, isSelected, label) {
+  return L.divIcon({
+    className: '',
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    html: `<div class="map-pin ${PIN_CLASS[status]} ${isSelected ? 'is-selected' : ''}"><span class="map-pin-dot">${BIKE_SVG}</span>${label ? `<span class="map-pin-label">${escapeHtml(label)}</span>` : ''}</div>`,
   });
+}
+
+function RiderMarker({ rider: r, isSelected, showLabel, onSelect }) {
+  const status = riderStatus(r);
+  const label = showLabel ? r.name.split(' ')[0] : '';
+  // Memoised so position pushes only move the marker instead of rebuilding its icon.
+  const icon = useMemo(() => riderIcon(status, isSelected, label), [status, isSelected, label]);
+  return (
+    <Marker
+      position={[r.location.lat, r.location.lng]}
+      icon={icon}
+      title={r.name}
+      zIndexOffset={isSelected ? 1000 : 0}
+      eventHandlers={{ click: () => onSelect(r.riderId) }}
+    />
+  );
+}
+
+const boundsOf = (riders) => L.latLngBounds(riders.map((r) => [r.location.lat, r.location.lng]));
+
+/** Fits the view to all riders once, on the first load that has any GPS pins. */
+function FitOnFirstLoad({ riders }) {
+  const map = useMap();
+  const done = useRef(false);
+  useEffect(() => {
+    if (done.current || !riders.length) return;
+    done.current = true;
+    map.fitBounds(boundsOf(riders), FIT_OPTS);
+  }, [map, riders]);
+  return null;
+}
+
+/** Flies to the selected rider when the selection changes (list click, map click, deep link). */
+function FlyToSelected({ rider }) {
+  const map = useMap();
+  const id = rider && hasGps(rider) ? rider._id : null;
+  const target = useRef(null);
+  useLayoutEffect(() => { target.current = rider?.location; });
+  useEffect(() => {
+    if (!id) return;
+    const { lat, lng } = target.current;
+    map.flyTo([lat, lng], Math.max(map.getZoom(), FOCUS_ZOOM), { duration: 0.8 });
+  }, [map, id]); // not on every position push, or the map would keep yanking around
+  return null;
+}
+
+function FitAllButton({ riders }) {
+  const map = useMap();
+  if (!riders.length) return null;
+  return (
+    <button type="button" className="map-fit" onClick={() => map.flyToBounds(boundsOf(riders), { ...FIT_OPTS, duration: 0.8 })}>
+      <Maximize2 size={13} /> Show all riders
+    </button>
+  );
 }
 
 export default function LiveRiders() {
@@ -75,8 +126,9 @@ export default function LiveRiders() {
   const shown = riders.filter((r) => (filter === 'all' || riderStatus(r) === filter)
     && [r.name, r.riderId, r.vehicleNumber].some((s) => s?.toLowerCase().includes(q)));
   const pinned = shown.filter(hasGps);
-  const project = makeProjection(pinned.map((r) => r.location));
-  const active = riders.find((r) => r._id === selected);
+  // `?rider=` holds the readable RID… id; older links carry the _id.
+  const isSelected = (r) => Boolean(selected) && (selected === r.riderId || selected === r._id);
+  const active = riders.find(isSelected);
   const count = (s) => riders.filter((r) => riderStatus(r) === s).length;
 
   return (
@@ -94,33 +146,25 @@ export default function LiveRiders() {
       {error && !data ? <Card><ErrorState error={error} onRetry={reload} /></Card> : (
         <div className="grid grid-side">
           <div className="map" role="img" aria-label="Rider positions">
-            <div className="map-grid" />
-            <div className="map-road" style={{ left: 0, right: 0, top: '48%', height: 14 }} />
-            <div className="map-road" style={{ top: 0, bottom: 0, left: '56%', width: 14 }} />
-            <div className="map-road" style={{ left: '10%', right: '30%', top: '22%', height: 8, transform: 'rotate(12deg)' }} />
-            {pinned.map((r) => {
-              const { left, top } = project(r.location);
-              return (
-                <button
-                  type="button"
-                  key={r._id}
-                  className={`map-pin ${PIN_CLASS[riderStatus(r)]} ${selected === r._id ? 'is-selected' : ''}`}
-                  style={{ left: `${left}%`, top: `${top}%` }}
-                  onClick={() => setSelected(r._id)}
-                  aria-label={r.name}
-                >
-                  <span className="map-pin-dot"><Bike size={14} /></span>
-                  {(selected === r._id || pinned.length < 8) && <span className="map-pin-label">{r.name.split(' ')[0]}</span>}
-                </button>
-              );
-            })}
+            <MapContainer center={DEFAULT_CENTER} zoom={DEFAULT_ZOOM} className="map-canvas">
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              {pinned.map((r) => (
+                <RiderMarker key={r._id} rider={r} isSelected={isSelected(r)} showLabel={isSelected(r) || pinned.length < 8} onSelect={setSelected} />
+              ))}
+              <FitOnFirstLoad riders={pinned} />
+              <FlyToSelected rider={active} />
+              <FitAllButton riders={pinned} />
+            </MapContainer>
             <div className="map-legend">
               <span><i style={{ background: 'var(--brand)' }} />On delivery</span>
               <span><i style={{ background: 'var(--info)' }} />Available</span>
             </div>
             <div className="map-updated">
               {paused ? <Pause size={13} /> : <span className="live-dot" />}
-              {paused ? 'Paused' : updatedAt ? `Updated ${new Date(updatedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : 'Loading…'}
+              {paused ? 'Paused' : updatedAt ? `Updated ${time(updatedAt, { seconds: true })}` : 'Loading…'}
             </div>
           </div>
 
@@ -129,13 +173,13 @@ export default function LiveRiders() {
             <Card padded={false} className="card-flush">
               <div className="toolbar toolbar-stack">
                 <Segmented value={filter} onChange={setFilter} options={[{ value: 'all', label: 'All', count: riders.length }, { value: 'busy', label: 'Busy', count: count('busy') }, { value: 'available', label: 'Available', count: count('available') }]} />
-                <SearchInput value={search} onChange={setSearch} placeholder="Find a rider" />
+                <SearchInput value={search} onChange={setSearch} placeholder="Find by name, bike no. or RID id" />
               </div>
               <div className="rider-list">
                 {!loading && riders.length === 0 && <EmptyState icon={Bike} title="No riders online" description="Riders appear here as soon as they go online in the rider app." />}
                 {riders.length > 0 && shown.length === 0 && <EmptyState icon={Bike} title="No riders match" />}
                 {shown.map((r) => (
-                  <button type="button" key={r._id} className={`rider-row ${selected === r._id ? 'is-selected' : ''}`} onClick={() => setSelected(r._id)}>
+                  <button type="button" key={r._id} className={`rider-row ${isSelected(r) ? 'is-selected' : ''}`} onClick={() => setSelected(r.riderId)}>
                     <Avatar name={r.name} size="sm" />
                     <div className="identity-copy" style={{ flex: 1 }}>
                       <strong>{r.name}</strong>
@@ -167,7 +211,7 @@ function SelectedRider({ rider: r, onProfile }) {
       {order && (
         <div style={{ marginTop: 16 }}>
           <KeyValue columns={1} items={[
-            ['Active order', <Link key="o" to={`/orders/${order.orderId}`}><Code>{order.orderId}</Code></Link>],
+            ['Active order', <Link key="o" to={`/orders/${order.orderId}`}><Code copy={false}>{order.orderId}</Code></Link>],
             ['Order status', <StatusBadge key="s" status={order.status} />],
             ['Store', order.vendor?.storeName],
             ['Deliver to', order.deliveryAddress?.addressLine],

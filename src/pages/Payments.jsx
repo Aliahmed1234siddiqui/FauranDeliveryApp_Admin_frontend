@@ -40,7 +40,7 @@ export default function Payments() {
     { key: 'customer', header: 'Customer', hideOnMobile: true, render: (p) => <Identity name={p.order?.customer?.name || '—'} sub={p.order?.vendor?.storeName} /> },
     { key: 'method', header: 'Method', render: (p) => <Badge tone={p.method === 'cod' ? 'warning' : 'info'}>{PAYMENT_METHODS[p.method] || p.method}</Badge> },
     { key: 'amount', header: 'Amount', align: 'right', render: (p) => <><span className="cell-strong">{money(p.amount)}</span>{p.refundedAmount > 0 && <span className="cell-sub">{money(p.refundedAmount)} refunded</span>}</> },
-    { key: 'commission', header: 'Commission', align: 'right', hideOnMobile: true, render: (p) => money(p.commissionAmount) },
+    { key: 'commission', header: 'Commission from vendor', align: 'right', hideOnMobile: true, render: (p) => money(p.commissionAmount) },
     { key: 'status', header: 'Status', render: (p) => <StatusBadge status={p.status} /> },
     { key: 'date', header: 'Date', hideOnMobile: true, render: (p) => dateTime(p.createdAt) },
     {

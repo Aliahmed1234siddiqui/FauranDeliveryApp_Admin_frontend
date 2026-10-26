@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { ImagePlus, X } from 'lucide-react';
+import { fileUrl } from '../config';
 
 const TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -40,7 +41,7 @@ export default function ImageUpload({ files = [], onChange, max = 5, existing = 
       )}
       {(previews.length > 0 || saved.length > 0) && (
         <div className="thumbs">
-          {saved.map((url) => <div className="thumb" key={url}><img src={url} alt="" /></div>)}
+          {saved.map((url) => <div className="thumb" key={url}><img src={fileUrl(url)} alt="" /></div>)}
           {previews.map((p, i) => (
             <div className="thumb" key={p.url}>
               <img src={p.url} alt={p.file.name} />

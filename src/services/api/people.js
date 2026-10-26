@@ -40,7 +40,7 @@ export const ridersApi = {
    *           vehicleNumber, documents: [url], approvalStatus, isOnline, isAvailable,
    *           currentLocation: { coordinates: [lng, lat] }, rating, totalRatings,
    *           totalDeliveries, payoutDetails: { method, accountTitle, accountNumber },
-   *           createdAt, totalEarnings }
+   *           createdAt, totalEarnings (after rider commission) }
    */
   list: (params) => http.page('/admin/riders', params),
 

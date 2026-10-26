@@ -4,7 +4,7 @@ import { useList } from '../lib/useList';
 import { useAction, useApi } from '../lib/hooks';
 import { customersApi } from '../services/api';
 import { date, money, num, timeAgo } from '../lib/format';
-import { Card, IconButton, Identity, PageHeader, SearchInput, Segmented, Select, StatCard, StatusBadge, Toggle } from '../ui/primitives';
+import { Card, Code, IconButton, Identity, PageHeader, SearchInput, Segmented, Select, StatCard, StatusBadge, Toggle } from '../ui/primitives';
 import DataTable, { Pagination } from '../ui/DataTable';
 
 const FILTERS = ['status', 'verified'];
@@ -31,7 +31,7 @@ export default function Customers() {
   };
 
   const columns = [
-    { key: 'name', header: 'Customer', render: (c) => <Identity name={c.name} sub={c.email} /> },
+    { key: 'name', header: 'Customer', render: (c) => <Identity name={c.name} sub={<><Code>{c.customerId}</Code>{c.email && ` · ${c.email}`}</>} /> },
     { key: 'phone', header: 'Phone', hideOnMobile: true, render: (c) => c.phone },
     { key: 'orders', header: 'Orders', align: 'right', render: (c) => num(c.totalOrders) },
     { key: 'spent', header: 'Lifetime spend', align: 'right', render: (c) => <span className="cell-strong">{money(c.totalSpent)}</span> },

@@ -5,7 +5,7 @@ import { useApi } from '../lib/hooks';
 import { useAuth } from '../lib/auth';
 import { payoutsApi, ridersApi } from '../services/api';
 import { compactMoney, money, num, titleCase } from '../lib/format';
-import { Button, Card, IconButton, Identity, PageHeader, SearchInput, Segmented, Select, StatCard, StatusBadge } from '../ui/primitives';
+import { Button, Card, Code, IconButton, Identity, PageHeader, SearchInput, Segmented, Select, StatCard, StatusBadge } from '../ui/primitives';
 import DataTable, { Pagination } from '../ui/DataTable';
 
 const FILTERS = ['status', 'isOnline'];
@@ -34,14 +34,14 @@ export default function Riders() {
   const open = (r) => navigate(`/riders/${r.riderId}`);
 
   const columns = [
-    { key: 'name', header: 'Rider', render: (r) => <Identity name={r.name} sub={r.riderId} /> },
+    { key: 'name', header: 'Rider', render: (r) => <Identity name={r.name} sub={<Code>{r.riderId}</Code>} /> },
     { key: 'phone', header: 'Phone', hideOnMobile: true, render: (r) => r.phone },
     { key: 'vehicle', header: 'Vehicle', hideOnMobile: true, render: (r) => <><span className="cell-strong">{titleCase(r.vehicleType || '—')}</span><span className="cell-sub">{r.vehicleNumber}</span></> },
     { key: 'status', header: 'Account', render: (r) => (!r.isActive ? <StatusBadge status="blocked" /> : <StatusBadge status={r.approvalStatus} />) },
     { key: 'live', header: 'Right now', render: (r) => (r.approvalStatus === 'approved' ? <StatusBadge status={riderNowStatus(r)} /> : <span className="muted">—</span>) },
     { key: 'deliveries', header: 'Deliveries', align: 'right', hideOnMobile: true, render: (r) => num(r.totalDeliveries) },
     { key: 'rating', header: 'Rating', hideOnMobile: true, render: (r) => (r.totalRatings ? <span className="row" style={{ gap: 4 }}><Star size={13} fill="var(--accent)" color="var(--accent)" />{r.rating}</span> : <span className="muted">New</span>) },
-    { key: 'earnings', header: 'Earnings', align: 'right', hideOnMobile: true, render: (r) => money(r.totalEarnings) },
+    { key: 'earnings', header: 'Earnings (after commission)', align: 'right', hideOnMobile: true, render: (r) => money(r.totalEarnings) },
     { key: 'actions', header: '', render: (r) => (r.approvalStatus === 'pending' ? <Button size="sm" variant="soft" onClick={(e) => { e.stopPropagation(); open(r); }}>Review</Button> : <IconButton icon={Eye} label="View rider" onClick={(e) => { e.stopPropagation(); open(r); }} />) },
   ];
 
@@ -63,7 +63,7 @@ export default function Riders() {
           <Segmented value={list.filters.status} onChange={(v) => list.setFilter('status', v)} options={[{ value: 'all', label: 'All', count: counts?.all }, { value: 'pending', label: 'Pending', count: counts?.pending }, { value: 'approved', label: 'Approved' }, { value: 'rejected', label: 'Rejected' }]} />
           <div className="spacer" />
           <Select value={list.filters.isOnline} onChange={(v) => list.setFilter('isOnline', v)} options={[{ value: 'all', label: 'Online & offline' }, { value: 'true', label: 'Online only' }, { value: 'false', label: 'Offline only' }]} />
-          <SearchInput value={list.search} onChange={list.setSearch} placeholder="Search name, phone or bike no." />
+          <SearchInput value={list.search} onChange={list.setSearch} placeholder="Search name, phone, bike no. or RID id" />
         </div>
         <DataTable columns={columns} rows={list.rows} loading={list.loading} error={list.error} onRetry={list.reload} onRowClick={open} rowClassName={(r) => (r.approvalStatus === 'pending' ? 'row-attention' : '')} />
         <Pagination page={list.page} limit={list.params.limit} total={list.total} onPage={list.setPage} />

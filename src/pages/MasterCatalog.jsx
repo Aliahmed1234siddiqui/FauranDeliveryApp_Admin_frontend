@@ -11,6 +11,7 @@ import { Badge, Button, Card, Code, EmptyState, ErrorState, Field, Identity, Inp
 import { ConfirmDialog, Drawer, Menu, Modal } from '../ui/overlays';
 import DataTable, { Pagination } from '../ui/DataTable';
 import ImageUpload from '../ui/ImageUpload';
+import { fileUrl } from '../config';
 
 const FILTERS = ['category', 'isActive'];
 const EMPTY = { name: '', category: '', brand: '', unit: '', barcode: '', description: '', tags: '', suggestedPrice: '', isActive: true };
@@ -23,7 +24,7 @@ function categoryOptions(categories) {
   ]);
 }
 
-const thumb = (m) => (m.images?.[0] ? <img src={m.images[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 10 }} /> : undefined);
+const thumb = (m) => (m.images?.[0] ? <img src={fileUrl(m.images[0])} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 10 }} /> : undefined);
 const priceRange = (r) => (!r ? '—' : r.min === r.max ? money(r.min) : `${money(r.min)} – ${money(r.max)}`);
 
 // ---------------------------------------------------------------------------
@@ -259,7 +260,7 @@ function MasterDetail({ item, editable, onClose, onEdit, onDelete }) {
       footer={editable && <><Button variant="danger-soft" icon={Trash2} onClick={() => onDelete(m)}>Delete</Button><span className="spacer" /><Button icon={Pencil} onClick={() => onEdit(m)}>Edit</Button></>}
     >
       <div className="stack">
-        {m.images?.length > 0 && <div className="thumbs" style={{ marginTop: 0 }}>{m.images.map((url) => <div className="thumb" key={url}><img src={url} alt="" /></div>)}</div>}
+        {m.images?.length > 0 && <div className="thumbs" style={{ marginTop: 0 }}>{m.images.map((url) => <div className="thumb" key={url}><img src={fileUrl(url)} alt="" /></div>)}</div>}
         <KeyValue items={[
           ['Category', m.category?.name],
           ['Status', <StatusBadge key="s" status={m.isActive ? 'active' : 'inactive'} />],
@@ -294,7 +295,7 @@ function MasterDetail({ item, editable, onClose, onEdit, onDelete }) {
 // ---------------------------------------------------------------------------
 // Keeps only the branches with items matching `term`.
 function filterNode(node, term) {
-  const items = (node.items || []).filter((i) => !term || i.name.toLowerCase().includes(term));
+  const items = (node.items || []).filter((i) => !term || i.name.toLowerCase().includes(term) || i.catalogId?.toLowerCase().includes(term));
   const subCategories = (node.subCategories || []).map((s) => filterNode(s, term)).filter(Boolean);
   if (term && !items.length && !subCategories.length) return null;
   return { ...node, items, subCategories };
@@ -334,7 +335,7 @@ function TreeView({ search, isActive, onOpen }) {
             <div className="tree-node" key={cat._id}>
               <button type="button" className={`tree-head ${isOpen ? 'is-open' : ''}`} onClick={() => setOpen((o) => ({ ...o, [cat._id]: !isOpen }))}>
                 <ChevronRight size={16} className="chev" />
-                {cat.image ? <img src={cat.image} alt="" style={{ width: 24, height: 24, borderRadius: 6, objectFit: 'cover' }} /> : <Tags size={18} className="muted" />}
+                {cat.image ? <img src={fileUrl(cat.image)} alt="" style={{ width: 24, height: 24, borderRadius: 6, objectFit: 'cover' }} /> : <Tags size={18} className="muted" />}
                 <strong>{cat.name}</strong>
                 {!cat.isActive && <Badge icon={EyeOff}>Hidden</Badge>}
                 <span className="spacer" />
@@ -432,7 +433,7 @@ export default function MasterCatalog() {
       ) : (
         <Card className="table-card" padded={false}>
           <div className="toolbar">
-            <SearchInput value={list.search} onChange={list.setSearch} placeholder="Name, brand, barcode or catalog id" />
+            <SearchInput value={list.search} onChange={list.setSearch} placeholder="Name, brand, barcode or CTL id" />
             <div className="spacer" />
             <Select value={list.filters.category} onChange={(v) => list.setFilter('category', v)} options={[{ value: 'all', label: 'All categories' }, ...categoryOptions(categories.data || [])]} />
             <Select value={list.filters.isActive} onChange={(v) => list.setFilter('isActive', v)} options={[{ value: 'all', label: 'Any status' }, { value: 'true', label: 'Active' }, { value: 'false', label: 'Inactive' }]} />

@@ -8,6 +8,7 @@ import { num } from '../lib/format';
 import { Badge, Button, Card, EmptyState, ErrorState, Field, Input, PageHeader, SearchInput, Skeleton, StatCard, Toggle } from '../ui/primitives';
 import { ConfirmDialog, Menu, Modal } from '../ui/overlays';
 import ImageUpload from '../ui/ImageUpload';
+import { fileUrl } from '../config';
 
 const parentIdOf = (c) => c.parentCategory?._id || '';
 
@@ -68,7 +69,7 @@ function CategoryCard({ category: c, subs, editable, onEdit, onAddSub, onToggle,
   return (
     <article className={`cat-card ${c.isActive ? '' : 'is-inactive'}`}>
       <div className="cat-card-head">
-        <span className="cat-emoji">{c.image ? <img src={c.image} alt="" /> : <Tags size={22} />}</span>
+        <span className="cat-emoji">{c.image ? <img src={fileUrl(c.image)} alt="" /> : <Tags size={22} />}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <h3>{c.name}</h3>
           <small>{num(c.subCategoryCount)} sub-categories · {num(c.productCount)} products</small>
@@ -130,7 +131,7 @@ export default function Categories() {
   const parents = all.filter((c) => !c.parentCategory);
   const subsOf = (id) => all.filter((c) => parentIdOf(c) === id);
   const term = search.trim().toLowerCase();
-  const matches = (c) => c.name.toLowerCase().includes(term);
+  const matches = (c) => c.name.toLowerCase().includes(term) || c.categoryId?.toLowerCase().includes(term);
   const shown = parents.filter((p) => !term || matches(p) || subsOf(p._id).some(matches));
 
   // The server refuses (409) while the category is in use; useAction shows its message.
@@ -152,7 +153,7 @@ export default function Categories() {
         <StatCard icon={EyeOff} tone="amber" label="Hidden" value={data ? num(all.filter((c) => !c.isActive).length) : '–'} footer="Not shown in the customer app" />
       </div>
       <div className="row mb">
-        <SearchInput value={search} onChange={setSearch} placeholder="Find a category or sub-category" className="spacer" />
+        <SearchInput value={search} onChange={setSearch} placeholder="Find a category, sub-category or CAT id" className="spacer" />
         {can('catalog', 'products') && <Button variant="secondary" icon={FolderTree} onClick={() => navigate('/master-catalog?view=tree')}>View catalog tree</Button>}
       </div>
 

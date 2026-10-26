@@ -5,7 +5,7 @@ import { useRouter } from '../lib/router';
 import { accountApi } from '../services/api';
 import { NAV_ITEMS } from '../layout/nav';
 import { date, titleCase } from '../lib/format';
-import { Avatar, Badge, Card, ErrorState, PageHeader, Skeleton } from '../ui/primitives';
+import { Avatar, Badge, Card, Code, ErrorState, PageHeader, Skeleton } from '../ui/primitives';
 
 function IdentityCard({ me, previewing }) {
   const superAdmin = me.isSuperAdmin && !previewing;
@@ -20,7 +20,7 @@ function IdentityCard({ me, previewing }) {
             {me.designation && <Badge tone="info">{me.designation}</Badge>}
           </div>
           <p>
-            <span><Hash size={14} /> {me.adminId || me.employeeId}</span>
+            <span><Hash size={14} /> <Code>{me.adminId || me.employeeId}</Code></span>
             <span><Mail size={14} /> {me.email}</span>
             {me.phone && <span><Phone size={14} /> {me.phone}</span>}
             {me.createdAt && <span><CalendarDays size={14} /> Since {date(me.createdAt)}</span>}

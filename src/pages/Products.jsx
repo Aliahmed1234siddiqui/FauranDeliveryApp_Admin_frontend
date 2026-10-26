@@ -6,10 +6,11 @@ import { useList } from '../lib/useList';
 import { useAuth } from '../lib/auth';
 import { categoriesApi, masterCatalogApi, productsApi, vendorsApi } from '../services/api';
 import { money, num } from '../lib/format';
-import { Badge, Button, Card, EmptyState, Field, Identity, Input, PageHeader, SearchInput, Segmented, Select, StatCard, StatusBadge, Toggle } from '../ui/primitives';
+import { Badge, Button, Card, Code, EmptyState, Field, Identity, Input, PageHeader, SearchInput, Segmented, Select, StatCard, StatusBadge, Toggle } from '../ui/primitives';
 import { ConfirmDialog, Drawer, Menu } from '../ui/overlays';
 import DataTable, { Pagination } from '../ui/DataTable';
 import ImageUpload from '../ui/ImageUpload';
+import { fileUrl } from '../config';
 
 // Filter keys are sent to GET /admin/products as-is.
 const FILTERS = ['approval', 'isActive', 'stock', 'vendorId', 'category'];
@@ -189,7 +190,7 @@ function useCounts() {
   }, [], { key: 'product-counts' });
 }
 
-const thumb = (p) => (p.images?.[0] ? <img src={p.images[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 10 }} /> : undefined);
+const thumb = (p) => (p.images?.[0] ? <img src={fileUrl(p.images[0])} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 10 }} /> : undefined);
 
 export default function Products() {
   const { navigate } = useRouter();
@@ -213,7 +214,7 @@ export default function Products() {
   const remove = () => run(() => productsApi.remove(deleting._id), { success: 'Product deleted' }).then(() => { setDeleting(null); refresh(); }).catch(() => {});
 
   const columns = [
-    { key: 'name', header: 'Product', render: (p) => <Identity icon={thumb(p)} name={p.name} sub={<>{p.unit && `${p.unit} · `}<span style={{ fontFamily: 'var(--mono)' }}>{p.productId}</span></>} /> },
+    { key: 'name', header: 'Product', render: (p) => <Identity icon={thumb(p)} name={p.name} sub={<>{p.unit && `${p.unit} · `}<Code>{p.productId}</Code></>} /> },
     { key: 'vendor', header: 'Store', hideOnMobile: true, render: (p) => <><span className="cell-strong">{p.vendor?.storeName || '—'}</span><span className="cell-sub">{p.vendor?.vendorId}</span></> },
     { key: 'category', header: 'Category', hideOnMobile: true, render: (p) => <><span>{p.category?.name || '—'}</span>{masterIdOf(p) && <span className="cell-sub">Master catalog item</span>}</> },
     { key: 'price', header: 'Price', align: 'right', render: (p) => (p.discountPrice ? <><span className="cell-strong">{money(p.discountPrice)}</span><span className="cell-sub" style={{ textDecoration: 'line-through' }}>{money(p.price)}</span></> : <span className="cell-strong">{money(p.price)}</span>) },
@@ -268,7 +269,7 @@ export default function Products() {
           <Select value={list.filters.category} onChange={(v) => list.setFilter('category', v)} options={[{ value: 'all', label: 'All categories' }, ...categoryOptions(categories.data || [])]} />
           <Select value={list.filters.isActive} onChange={(v) => list.setFilter('isActive', v)} options={[{ value: 'all', label: 'Any visibility' }, { value: 'true', label: 'Visible' }, { value: 'false', label: 'Hidden' }]} />
           <Select value={list.filters.stock} onChange={(v) => list.setFilter('stock', v)} options={[{ value: 'all', label: 'Any stock' }, { value: 'low', label: 'Low stock' }, { value: 'out', label: 'Out of stock' }]} />
-          <SearchInput value={list.search} onChange={list.setSearch} placeholder="Name or PRD id" />
+          <SearchInput value={list.search} onChange={list.setSearch} placeholder="Search name or PRD id" />
         </div>
         <DataTable
           columns={columns}

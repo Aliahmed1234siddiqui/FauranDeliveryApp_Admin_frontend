@@ -25,7 +25,7 @@ export default function Vendors() {
   const open = (v) => navigate(`/vendors/${v.vendorId}`);
 
   const columns = [
-    { key: 'store', header: 'Store', render: (v) => <Identity name={v.storeName} sub={v.vendorId} square /> },
+    { key: 'store', header: 'Store', render: (v) => <Identity name={v.storeName} sub={<Code>{v.vendorId}</Code>} square /> },
     { key: 'owner', header: 'Owner', hideOnMobile: true, render: (v) => <><span className="cell-strong">{v.name}</span><span className="cell-sub">{v.phone}</span></> },
     { key: 'address', header: 'Location', hideOnMobile: true, render: (v) => (v.storeAddress?.address ? <span className="row" style={{ gap: 5 }}><MapPin size={13} className="muted" />{v.storeAddress.address}</span> : <span className="muted">—</span>) },
     { key: 'status', header: 'Status', render: (v) => (v.isActive ? <StatusBadge status={v.approvalStatus} /> : <StatusBadge status="blocked" />) },

@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { Ban, Bike, Check, CheckCheck, Circle, Clock, CreditCard, MapPin, Package, PackageX, Phone, Printer, RotateCcw, Store, Undo2, User, X } from 'lucide-react';
+import { Ban, Bike, Check, CheckCheck, Circle, Clock, Copy, CreditCard, MapPin, Package, PackageX, Phone, Printer, RotateCcw, Store, Undo2, User, X } from 'lucide-react';
 import { useAction, useApi } from '../lib/hooks';
 import { useRouter } from '../lib/router';
 import { useAuth } from '../lib/auth';
 import { needsRefund, ordersApi } from '../services/api';
 import { dateTime, money, timeAgo, titleCase } from '../lib/format';
 import { CANCELLABLE_STATUSES, FAILURE_REASONS, PAYMENT_METHODS } from '../lib/constants';
-import { Badge, Button, Card, Code, ErrorState, Field, Identity, KeyValue, Segmented, StatusBadge } from '../ui/primitives';
+import { Badge, Button, Card, Code, ErrorState, Field, IconButton, Identity, KeyValue, Segmented, StatusBadge } from '../ui/primitives';
+import { copyText } from '../lib/clipboard';
 import { statusLabel } from '../ui/status';
 import { ConfirmDialog, Modal } from '../ui/overlays';
 import { BackLink, DetailSkeleton, RefundButton } from './shared';
+import { fileUrl } from '../config';
 
 const FLOW = ['placed', 'accepted', 'preparing', 'ready', 'rider_assigned', 'picked_up', 'on_the_way', 'delivered'];
 // Orders that left the happy path: show only what actually happened.
@@ -45,7 +47,7 @@ export default function OrderDetail({ params }) {
       <BackLink to="/orders">All orders</BackLink>
       <div className="page-header">
         <div className="page-header-copy">
-          <div className="row row-wrap"><h1 style={{ fontFamily: 'var(--mono)', fontSize: 22, letterSpacing: 0 }}>{o.orderId}</h1><StatusBadge status={o.status} /></div>
+          <div className="row row-wrap"><h1 style={{ fontFamily: 'var(--mono)', fontSize: 22, letterSpacing: 0 }}>{o.orderId}</h1><IconButton icon={Copy} size={15} label="Copy order id" onClick={() => copyText(o.orderId)} /><StatusBadge status={o.status} /></div>
           <div className="page-header-meta">
             <span><Clock size={14} /> Placed {dateTime(o.createdAt)}</span>
             <span><CreditCard size={14} /> {methodLabel(o.paymentMethod)} · <StatusBadge status={o.paymentStatus} /></span>
@@ -131,7 +133,7 @@ function ItemsCard({ order: o }) {
           return (
             <div className="line-item" key={`${it.product?.productId || it.product}-${i}`}>
               <span className="line-item-icon" style={image ? { overflow: 'hidden' } : undefined}>
-                {image ? <img src={image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Package size={18} />}
+                {image ? <img src={fileUrl(image)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Package size={18} />}
               </span>
               <div>
                 <strong>{it.name || it.product?.name}</strong>
@@ -146,10 +148,30 @@ function ItemsCard({ order: o }) {
         <div><span>Subtotal</span><span>{money(o.subtotal)}</span></div>
         <div><span>Delivery fee</span><span>{o.deliveryFee ? money(o.deliveryFee) : <Badge tone="success">Free</Badge>}</span></div>
         <div className="grand"><span>Total</span><span>{money(o.totalAmount)}</span></div>
-        <div style={{ fontSize: 12.5 }}><span className="muted">Fauran Mart commission</span><span className="muted">{money(o.platformCommission)}</span></div>
-        <div style={{ fontSize: 12.5 }}><span className="muted">Vendor payout</span><span className="muted">{money(o.vendorPayout)}</span></div>
       </div>
+      <MoneySplit order={o} />
     </Card>
+  );
+}
+
+// Who gets what from this order. Orders from before rider commission have riderPayout: null
+// and riderCommission: 0 - the rider then kept the whole delivery fee.
+function MoneySplit({ order: o }) {
+  const riderCommission = o.riderCommission || 0;
+  const riderGets = o.riderPayout ?? o.deliveryFee ?? 0;
+  const line = (label, value, cls = 'muted') => <div style={{ fontSize: 12.5 }}><span className="muted">{label}</span><span className={cls}>{value}</span></div>;
+  return (
+    <div className="totals" style={{ marginTop: 14 }}>
+      <div><span className="cell-strong">Store</span><span /></div>
+      {line('Products subtotal', money(o.subtotal))}
+      {line('Commission from vendor', `− ${money(o.platformCommission)}`)}
+      {line('Vendor gets', money(o.vendorPayout), '')}
+      <div><span className="cell-strong">Rider</span><span /></div>
+      {line('Delivery fee', money(o.deliveryFee))}
+      {line('Rider commission', `− ${money(riderCommission)}`)}
+      {line('Rider gets', money(riderGets), '')}
+      <div className="grand"><span>Fauran Mart total profit</span><span>{money((o.platformCommission || 0) + riderCommission)}</span></div>
+    </div>
   );
 }
 

@@ -1,9 +1,14 @@
 // Dashboard, reports and settings (handbook sections 10 and 15).
 //
 // Money words: totalSales = what customers paid (products + delivery) · productSales =
-// products only · deliveryFees = rider earnings · platformCommission = Furan's profit ·
-// vendorPayout = productSales - commission. Reports count delivered orders only and
-// filter on the order's created date. Date params: { from, to } as YYYY-MM-DD.
+// products only · deliveryFees = delivery fees customers paid ·
+// platformCommission = Furan's cut from vendors (% of products) ·
+// riderCommission = Furan's cut from riders (% of delivery fee) ·
+// profit = platformCommission + riderCommission (total Furan earnings) ·
+// vendorPayout = productSales - platformCommission · riderPayout = deliveryFees - riderCommission.
+// Use profitOf / riderPayoutOf (lib/format) to read the last two from older rows.
+// Reports count delivered orders only and filter on the order's created date.
+// Date params: { from, to } as YYYY-MM-DD, read as Pakistan days with `to` inclusive.
 import { http } from '../http';
 
 export const dashboardApi = {
@@ -14,9 +19,12 @@ export const dashboardApi = {
    *              riders: { total, pending, approved, rejected, online } },
    *     orders: { total, today, active, failedDeliveries, delivered, cancelled, byStatus: { [status]: n } },
    *     revenue: { allTime | today | thisMonth: { orders, totalSales, productSales, deliveryFees,
-   *                                               platformCommission, vendorPayout } },
+   *                                               platformCommission, riderCommission, profit,
+   *                                               vendorPayout, riderPayout } },
    *     inventory: { totalProducts, lowStock, outOfStock, pendingApproval, lowStockThreshold },
-   *     topVendors: [vendorRow], topRiders: [riderRow], recentOrders: [order], commissionPercent }
+   *     topVendors: [vendorRow], topRiders: [riderRow], recentOrders: [order],
+   *     commissionPercent, riderCommissionPercent }
+   * today / thisMonth are Pakistan-time periods.
    */
   summary: () => http.get('/admin/dashboard/summary'),
 
@@ -30,17 +38,21 @@ export const dashboardApi = {
 export const reportsApi = {
   /**
    * GET /admin/reports/sales { groupBy: day|week|month|year, from, to }   🔒 reports
-   * → [{ period, orderCount, totalSales, productSales, deliveryFees, platformCommission, vendorPayout }]
-   *   oldest first; periods without delivered orders are left out.
+   * → [{ period, orderCount, totalSales, productSales, deliveryFees, platformCommission,
+   *       riderCommission, profit, vendorPayout, riderPayout }]
+   *   oldest first; periods (Pakistan days/weeks/months) without delivered orders are left out.
    */
   sales: (params) => http.get('/admin/reports/sales', params),
 
   /**
    * GET /admin/reports/revenue { from, to }   🔒 reports
    * → { period, deliveredOrders, totalSales, productSales, deliveryFees, platformCommission,
-   *     vendorPayout, avgOrderValue, byPaymentMethod: { cod?, stripe?: { orders, amount } },
+   *     riderCommission, profit, vendorPayout, riderPayout, avgOrderValue,
+   *     byPaymentMethod: { cod?, stripe?: { orders, amount } },
    *     refunds: { count, amount }, cancelledOrders: { count, amount },
-   *     failedDeliveries: { count, riderFeesPaid, furanCost, cardRefundsDue }, commissionPercent }
+   *     failedDeliveries: { count, riderFeesPaid, furanCost, cardRefundsDue },
+   *     commissionPercent, riderCommissionPercent }
+   * riderFeesPaid and furanCost are after rider commission.
    */
   revenue: (params) => http.get('/admin/reports/revenue', params),
 
@@ -55,8 +67,8 @@ export const reportsApi = {
   /**
    * GET /admin/reports/riders { from, to }   🔒 reports
    * riderRow: { _id, riderId, name, phone, vehicleType, vehicleNumber, isOnline, rating,
-   *             totalRatings, deliveries, failedAttempts?, deliveryEarnings, cashCollected,
-   *             avgDeliveryMinutes | null }
+   *             totalRatings, deliveries, failedAttempts?, deliveryEarnings (after rider commission),
+   *             cashCollected, avgDeliveryMinutes | null }
    */
   riders: (params) => http.get('/admin/reports/riders', params),
 
@@ -71,7 +83,8 @@ export const reportsApi = {
 export const settingsApi = {
   /**
    * GET /admin/settings   🔒 settings
-   * → { radius: { initialKm, stepKm, maxKm, timeoutSec }, commission: { percent },
+   * → { radius: { initialKm, stepKm, maxKm, timeoutSec },
+   *     commission: { percent (vendor, % of products), riderPercent (rider, % of delivery fee) },
    *     inventory: { lowStockThreshold }, products: { requireProductApproval },
    *     failedDeliveries: { failedDeliveryWaitMin, maxFailedCodDeliveries },
    *     stripe: { configured, webhookConfigured, currency } }
@@ -81,8 +94,12 @@ export const settingsApi = {
   /** PUT /admin/settings/radius - any of { initialKm ≥0.5, stepKm ≥0.5, maxKm ≤50, timeoutSec 10-600 }. */
   updateRadius: (payload) => http.put('/admin/settings/radius', numbersOnly(payload)),
 
-  /** PUT /admin/settings/commission { percent: 0-100 } → { percent } */
-  updateCommission: (percent) => http.put('/admin/settings/commission', { percent: Number(percent) }),
+  /**
+   * PUT /admin/settings/commission { percent?, riderPercent? } (each 0-100, at least one)
+   * → { percent, riderPercent }. 400 when nothing is sent or a value is out of range.
+   * Applies to new orders only.
+   */
+  updateCommission: (payload) => http.put('/admin/settings/commission', numbersOnly(payload)),
 
   /**
    * PUT /admin/settings/general - any of { lowStockThreshold, requireProductApproval,

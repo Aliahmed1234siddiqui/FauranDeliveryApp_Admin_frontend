@@ -4,10 +4,10 @@ import { useQueryState, useRouter } from '../lib/router';
 import { useApi } from '../lib/hooks';
 import { useAuth } from '../lib/auth';
 import { reportsApi } from '../services/api';
-import { compactMoney, compactNum, lastDays, money, num, periodLabel, titleCase } from '../lib/format';
+import { compactMoney, compactNum, lastDays, money, num, periodLabel, profitOf, riderPayoutOf, titleCase } from '../lib/format';
 import { PAYMENT_METHODS, REPORT_GROUP_BY } from '../lib/constants';
 import { Badge, Card, EmptyState, ErrorState, Identity, Progress, Segmented, Select, Skeleton, StatCard, Tabs, PageHeader } from '../ui/primitives';
-import { BarChart, Donut, LineChart } from '../ui/charts';
+import { BarChart, ChartLegend, Donut, LineChart } from '../ui/charts';
 import DataTable from '../ui/DataTable';
 import { DateRange } from './shared';
 
@@ -16,6 +16,12 @@ const DEFAULT_DAYS = '30';
 
 const Rating = ({ value }) => <span className="row" style={{ gap: 4 }}><Star size={13} fill="var(--accent)" color="var(--accent)" />{value ? Number(value).toFixed(1) : '—'}</span>;
 const avg = (total, count) => (count ? total / count : 0);
+
+const PROFIT_SERIES = [
+  { key: 'profit', label: 'Total profit', color: 'var(--chart-brand)' },
+  { key: 'platformCommission', label: 'Commission from vendors', color: 'var(--series-3)' },
+  { key: 'riderCommission', label: 'Commission from riders', color: 'var(--chart-accent)' },
+];
 
 // Shared from/to range kept in the URL; empty params fall back to the last 30 days.
 function useDateRange() {
@@ -59,14 +65,22 @@ function SalesTab({ range }) {
         <Select label="Group by" value={groupBy} onChange={setGroupBy} options={REPORT_GROUP_BY} />
       </div>
       <ReportState query={query} isEmpty={(rows) => !rows.length}>
-        {(rows) => {
-          const t = rows.reduce((s, r) => ({ orders: s.orders + r.orderCount, sales: s.sales + r.totalSales, commission: s.commission + r.platformCommission }), { orders: 0, sales: 0, commission: 0 });
+        {(raw) => {
+          // Fill profit / riderPayout on rows from older backends so charts and tables can read them directly.
+          const rows = raw.map((r) => ({ ...r, riderCommission: r.riderCommission || 0, profit: profitOf(r), riderPayout: riderPayoutOf(r) }));
+          const t = rows.reduce((s, r) => ({
+            orders: s.orders + r.orderCount,
+            sales: s.sales + r.totalSales,
+            vendorCommission: s.vendorCommission + r.platformCommission,
+            riderCommission: s.riderCommission + r.riderCommission,
+            profit: s.profit + r.profit,
+          }), { orders: 0, sales: 0, vendorCommission: 0, riderCommission: 0, profit: 0 });
           return (
             <>
               <div className="stat-grid">
                 <StatCard icon={ShoppingBag} label="Delivered orders" value={num(t.orders)} footer={`Across ${num(rows.length)} periods with sales`} />
                 <StatCard icon={Receipt} tone="amber" label="Total sales" value={compactMoney(t.sales)} footer="Products + delivery fees" />
-                <StatCard icon={Percent} tone="violet" label="Platform commission" value={compactMoney(t.commission)} footer="Fauran Mart's earnings" />
+                <StatCard icon={Percent} tone="violet" label="Total profit" value={compactMoney(t.profit)} footer={`${compactMoney(t.vendorCommission)} from vendors · ${compactMoney(t.riderCommission)} from riders`} />
                 <StatCard icon={TrendingUp} tone="blue" label="Avg. order value" value={money(avg(t.sales, t.orders))} footer="Total sales / delivered orders" />
               </div>
               <div className="grid grid-2">
@@ -88,15 +102,38 @@ function SalesTab({ range }) {
                         columns={[
                           periodCol,
                           { key: 'totalSales', header: 'Total sales', align: 'right', render: (r) => money(r.totalSales) },
-                          { key: 'platformCommission', header: 'Commission', align: 'right', render: (r) => money(r.platformCommission) },
-                          { key: 'vendorPayout', header: 'Vendor payout', align: 'right', hideOnMobile: true, render: (r) => money(r.vendorPayout) },
                           { key: 'deliveryFees', header: 'Delivery fees', align: 'right', hideOnMobile: true, render: (r) => money(r.deliveryFees) },
+                          { key: 'vendorPayout', header: 'Paid to vendors', align: 'right', hideOnMobile: true, render: (r) => money(r.vendorPayout) },
+                          { key: 'riderPayout', header: 'Paid to riders', align: 'right', hideOnMobile: true, render: (r) => money(r.riderPayout) },
                         ]}
                       />
                     )}
                   />
                 </Card>
               </div>
+              <Card title={`${unit} profit`} subtitle="Commission from vendors + commission from riders = total profit" style={{ marginTop: 18 }}>
+                <ChartOrTable
+                  label="Profit view"
+                  chart={(
+                    <>
+                      <LineChart data={rows} x="period" series={PROFIT_SERIES} formatX={periodLabel} formatY={(v) => compactMoney(v).replace('Rs. ', '')} formatTip={money} />
+                      <ChartLegend items={PROFIT_SERIES} />
+                    </>
+                  )}
+                  table={(
+                    <DataTable
+                      rowKey="period"
+                      rows={rows}
+                      columns={[
+                        periodCol,
+                        { key: 'platformCommission', header: 'Commission from vendors', align: 'right', render: (r) => money(r.platformCommission) },
+                        { key: 'riderCommission', header: 'Commission from riders', align: 'right', render: (r) => money(r.riderCommission) },
+                        { key: 'profit', header: 'Total profit', align: 'right', render: (r) => <span className="cell-strong">{money(r.profit)}</span> },
+                      ]}
+                    />
+                  )}
+                />
+              </Card>
             </>
           );
         }}
@@ -110,20 +147,25 @@ function RevenueTab({ range }) {
   return (
     <ReportState query={query}>
       {(d) => {
+        const riderCommission = d.riderCommission || 0;
+        const riderPayout = riderPayoutOf(d);
+        const profit = profitOf(d);
         const split = [
-          { label: 'Vendor payouts', value: d.vendorPayout, color: 'var(--series-1)' },
-          { label: 'Platform commission', value: d.platformCommission, color: 'var(--chart-brand)' },
-          { label: 'Rider delivery fees', value: d.deliveryFees, color: 'var(--violet)' },
+          { label: 'Paid to vendors', value: d.vendorPayout, color: 'var(--series-1)' },
+          { label: 'Paid to riders', value: riderPayout, color: 'var(--violet)' },
+          { label: 'Commission from vendors', value: d.platformCommission, color: 'var(--series-3)' },
+          { label: 'Commission from riders', value: riderCommission, color: 'var(--chart-accent)' },
         ];
         const methods = Object.entries(d.byPaymentMethod || {});
         const fd = d.failedDeliveries || {};
+        const rates = [d.commissionPercent != null && `Vendor ${d.commissionPercent}%`, d.riderCommissionPercent != null && `Rider ${d.riderCommissionPercent}%`].filter(Boolean).join(' · ');
         return (
           <>
             <div className="stat-grid">
-              <StatCard icon={Receipt} label="Total sales" value={compactMoney(d.totalSales)} footer={`${num(d.deliveredOrders)} delivered orders`} />
-              <StatCard icon={Percent} tone="violet" label="Platform commission" value={compactMoney(d.platformCommission)} footer={`${d.commissionPercent}% of product sales`} />
-              <StatCard icon={Bike} tone="amber" label="Delivery fees" value={compactMoney(d.deliveryFees)} footer="Paid out as rider earnings" />
-              <StatCard icon={TrendingUp} tone="blue" label="Avg. order value" value={money(d.avgOrderValue)} footer={`Product sales ${compactMoney(d.productSales)}`} />
+              <StatCard icon={Receipt} label="Total sales" value={compactMoney(d.totalSales)} footer={`${num(d.deliveredOrders)} delivered orders · avg. ${money(d.avgOrderValue)}`} />
+              <StatCard icon={TrendingUp} tone="blue" label="Total profit" value={compactMoney(profit)} footer={rates || 'Commission from vendors + riders'} />
+              <StatCard icon={Percent} tone="violet" label="Commission from vendors" value={compactMoney(d.platformCommission)} footer={d.commissionPercent != null ? `${d.commissionPercent}% of product sales` : 'Share of product sales'} />
+              <StatCard icon={Bike} tone="amber" label="Commission from riders" value={compactMoney(riderCommission)} footer={d.riderCommissionPercent != null ? `${d.riderCommissionPercent}% of delivery fees` : 'Share of delivery fees'} />
             </div>
             <div className="grid grid-main mb">
               <Card title="Where the money goes" subtitle="Split of total sales on delivered orders">
@@ -131,9 +173,11 @@ function RevenueTab({ range }) {
                 <div className="totals" style={{ marginTop: 18 }}>
                   <div><span>Product sales</span><span>{money(d.productSales)}</span></div>
                   <div><span>Delivery fees</span><span>{money(d.deliveryFees)}</span></div>
-                  <div><span>Vendor payouts</span><span className="neg">− {money(d.vendorPayout)}</span></div>
-                  <div><span>Rider delivery fees</span><span className="neg">− {money(d.deliveryFees)}</span></div>
-                  <div className="grand"><span>Platform commission</span><span>{money(d.platformCommission)}</span></div>
+                  <div><span>Paid to vendors</span><span className="neg">− {money(d.vendorPayout)}</span></div>
+                  <div><span>Paid to riders (after commission)</span><span className="neg">− {money(riderPayout)}</span></div>
+                  <div style={{ fontSize: 12.5 }}><span className="muted">Commission from vendors</span><span className="muted">{money(d.platformCommission)}</span></div>
+                  <div style={{ fontSize: 12.5 }}><span className="muted">Commission from riders</span><span className="muted">{money(riderCommission)}</span></div>
+                  <div className="grand"><span>Total profit</span><span>{money(profit)}</span></div>
                 </div>
               </Card>
               <Card title="By payment method" subtitle="Delivered orders">
@@ -157,7 +201,7 @@ function RevenueTab({ range }) {
                 <div className="mini-stat"><span>Refunds · {num(d.refunds?.count)}</span><strong>{money(d.refunds?.amount)}</strong></div>
                 <div className="mini-stat"><span>Cancelled orders · {num(d.cancelledOrders?.count)}</span><strong>{money(d.cancelledOrders?.amount)}</strong></div>
                 <div className="mini-stat"><span>Failed deliveries · {num(fd.count)}</span><strong>{money(fd.furanCost)}<small style={{ display: 'inline', marginLeft: 4 }}>Fauran Mart cost</small></strong></div>
-                <div className="mini-stat"><span>Rider fees on failed</span><strong>{money(fd.riderFeesPaid)}</strong></div>
+                <div className="mini-stat"><span>Rider fees on failed (after commission)</span><strong>{money(fd.riderFeesPaid)}</strong></div>
                 <div className="mini-stat"><span>Card refunds due</span><strong>{money(fd.cardRefundsDue)}</strong></div>
               </div>
             </Card>
@@ -186,8 +230,8 @@ function VendorsTab({ range }) {
           { key: 'vendor', header: 'Store', render: (r) => <Identity name={r.storeName || r.vendorName} sub={`${r.vendorId} · ${r.ownerName || '—'}`} square /> },
           { key: 'totalSales', header: 'Total sales', width: 220, render: (r) => <div><strong style={{ color: 'var(--text)' }}>{compactMoney(r.totalSales)}</strong><div style={{ marginTop: 6 }}><Progress value={r.totalSales} max={max} /></div></div> },
           { key: 'totalOrders', header: 'Orders', align: 'right', render: (r) => num(r.totalOrders) },
-          { key: 'platformCommission', header: 'Commission', align: 'right', hideOnMobile: true, render: (r) => money(r.platformCommission) },
-          { key: 'vendorPayout', header: 'Vendor payout', align: 'right', hideOnMobile: true, render: (r) => money(r.vendorPayout) },
+          { key: 'platformCommission', header: 'Commission from vendor', align: 'right', hideOnMobile: true, render: (r) => money(r.platformCommission) },
+          { key: 'vendorPayout', header: 'Paid to vendor', align: 'right', hideOnMobile: true, render: (r) => money(r.vendorPayout) },
           { key: 'avgOrderValue', header: 'Avg. order', align: 'right', hideOnMobile: true, render: (r) => money(r.avgOrderValue) },
           { key: 'cancelledOrders', header: 'Cancelled', align: 'right', render: (r) => <span className={r.cancelledOrders ? 'neg' : 'muted'}>{num(r.cancelledOrders)}</span> },
         ]}
@@ -216,7 +260,7 @@ function RidersTab({ range }) {
           { key: 'failedAttempts', header: 'Failed', align: 'right', render: (r) => <span className={r.failedAttempts ? 'neg' : 'muted'}>{num(r.failedAttempts ?? 0)}</span> },
           { key: 'avg', header: 'Avg. delivery', align: 'right', hideOnMobile: true, render: (r) => (r.avgDeliveryMinutes == null ? <span className="muted">—</span> : `${Math.round(r.avgDeliveryMinutes)} min`) },
           { key: 'cashCollected', header: 'Cash collected', align: 'right', hideOnMobile: true, render: (r) => compactMoney(r.cashCollected) },
-          { key: 'deliveryEarnings', header: 'Earnings', align: 'right', hideOnMobile: true, render: (r) => money(r.deliveryEarnings) },
+          { key: 'deliveryEarnings', header: 'Earnings (after commission)', align: 'right', hideOnMobile: true, render: (r) => money(r.deliveryEarnings) },
           { key: 'rating', header: 'Rating', render: (r) => <span title={`${num(r.totalRatings)} ratings`}><Rating value={r.rating} /></span> },
         ]}
       />

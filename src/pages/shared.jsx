@@ -6,6 +6,7 @@ import { money } from '../lib/format';
 import { paymentsApi, usersApi } from '../services/api';
 import { Button, Card, EmptyState, Field, IconButton, Input, Skeleton } from '../ui/primitives';
 import { ConfirmDialog, Modal } from '../ui/overlays';
+import { fileUrl } from '../config';
 
 export function BackLink({ to, children }) {
   return <Link to={to} className="back-link"><ArrowLeft size={15} /> {children}</Link>;
@@ -92,7 +93,7 @@ export function DocumentList({ documents = [] }) {
   return (
     <div className="doc-list">
       {documents.map((url, i) => (
-        <a key={url} className="doc" href={url} target="_blank" rel="noreferrer">
+        <a key={url} className="doc" href={fileUrl(url)} target="_blank" rel="noreferrer">
           <FileText size={16} />
           <span>Document {i + 1}{/\.pdf(\?|$)/i.test(url) ? ' (PDF)' : ''}</span>
           <ExternalLink size={14} className="muted" />

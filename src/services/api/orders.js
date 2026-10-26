@@ -6,13 +6,15 @@ export const ordersApi = {
    * GET /admin/orders   🔒 orders | dashboard
    * params: { search (ORD…/TRK…), status, vendorId, riderId, customerId,
    *           paymentMethod: stripe|cod, paymentStatus: pending|paid|failed|refunded,
-   *           from, to (YYYY-MM-DD, `to` inclusive), page, limit }
+   *           from, to (YYYY-MM-DD Pakistan days, `to` inclusive), page, limit }
    * item:   { _id, orderId, trackingId,
    *           customer: { customerId, name, phone }, vendor: { vendorId, name, storeName },
    *           rider: null | { riderId, name, phone },
    *           items: [{ product, name, quantity, price }],
    *           deliveryAddress: { addressLine, location },
-   *           subtotal, deliveryFee, platformCommission, vendorPayout, totalAmount,
+   *           subtotal, deliveryFee, platformCommission, vendorPayout,
+   *           riderCommission, riderPayout (null on orders from before rider commission:
+   *           the rider then got the whole deliveryFee), totalAmount,
    *           paymentMethod, paymentStatus, status, prepStatus,
    *           failedAt, failureReason, failureNote, returnedAt, returnCondition, refundDue,
    *           cancelledBy, cancelReason, deliveredAt, eta,

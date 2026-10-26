@@ -161,7 +161,7 @@ function LedgerDrawer({ userId, onClose }) {
       {loading && !data ? <Skeleton h={300} /> : error && !data ? <ErrorState error={error} onRetry={reload} /> : data && (
         <>
           <div className="ledger-summary">
-            <div className="mini-stat"><span>Total earned</span><strong>{compactMoney(b.totalEarned)}</strong></div>
+            <div className="mini-stat"><span>{isRider ? 'Earned (after commission)' : 'Total earned'}</span><strong>{compactMoney(b.totalEarned)}</strong></div>
             <div className="mini-stat"><span>Paid out</span><strong className="neg">{compactMoney(b.paidOut)}</strong></div>
             {isRider ? (
               <div className="mini-stat">
@@ -252,7 +252,7 @@ function RiderTab({ list, owes, setOwes, onPay, onDeposit, onLedger }) {
   const columns = [
     { key: 'rider', header: 'Rider', render: (r) => <Identity name={r.name} sub={[r.riderId, r.vehicleNumber].filter(Boolean).join(' · ')} /> },
     { key: 'payout', header: 'Payout details', hideOnMobile: true, render: (r) => <AccountCell account={r.payoutDetails} provider={r.payoutDetails?.method && methodLabel(r.payoutDetails.method)} /> },
-    { key: 'earned', header: 'Earned', align: 'right', hideOnMobile: true, render: (r) => money(r.totalEarned) },
+    { key: 'earned', header: 'Earnings (after commission)', align: 'right', hideOnMobile: true, render: (r) => money(r.totalEarned) },
     { key: 'paid', header: 'Paid out', align: 'right', hideOnMobile: true, render: (r) => money(r.paidOut) },
     { key: 'cash', header: 'Cash in hand', align: 'right', render: (r) => (r.cashInHand > 0 ? <span className="cell-strong">{money(r.cashInHand)}</span> : <span className="muted">—</span>) },
     { key: 'balance', header: 'Balance', align: 'right', render: (r) => <RiderBalance r={r} /> },
@@ -275,7 +275,7 @@ function RiderTab({ list, owes, setOwes, onPay, onDeposit, onLedger }) {
         <Segmented value={owes} onChange={setOwes} options={[{ value: '', label: 'All riders' }, { value: 'furan', label: 'Fauran Mart owes rider' }, { value: 'rider', label: 'Rider owes Fauran Mart' }]} />
       </div>
       <MoneyRule>
-        Cash in hand = COD collected − cash deposited. Balance = earned − paid out − cash in hand. A rider can only be paid what Fauran Mart owes them, so record cash received first.
+        Earnings are delivery fees after Fauran Mart&apos;s rider commission. Cash in hand = COD collected − cash deposited. Balance = earnings − paid out − cash in hand. A rider can only be paid what Fauran Mart owes them, so record cash received first.
       </MoneyRule>
       <DataTable
         columns={columns}
@@ -353,7 +353,7 @@ export default function Payouts() {
         <StatCard icon={Store} label="Due to vendors" value={vendors.loading && !vendors.data ? '–' : compactMoney(sum(vendorRows, 'due'))} footer={`${vendorRows.filter((v) => v.due > 0).length} vendors owed money`} onClick={() => setTab('vendors')} />
         <StatCard icon={Bike} tone="violet" label="Fauran Mart owes riders" value={ridersAll.loading && !ridersAll.data ? '–' : compactMoney(sum(riderRows, 'furanOwesRider'))} footer={`${riderRows.filter((r) => r.furanOwesRider > 0).length} riders to pay`} onClick={() => { setTab('riders'); setOwes('furan'); }} />
         <StatCard icon={Banknote} tone="rose" label="COD cash with riders" value={ridersAll.loading && !ridersAll.data ? '–' : compactMoney(sum(riderRows, 'cashInHand'))} footer={`${riderRows.filter((r) => r.cashInHand > 0).length} riders holding cash`} onClick={() => setTab('riders')} />
-        <StatCard icon={Landmark} tone="blue" label="Riders owe Fauran Mart" value={ridersAll.loading && !ridersAll.data ? '–' : compactMoney(sum(riderRows, 'riderOwesFuran'))} footer="Cash held beyond their earnings" onClick={() => { setTab('riders'); setOwes('rider'); }} />
+        <StatCard icon={Landmark} tone="blue" label="Riders owe Fauran Mart" value={ridersAll.loading && !ridersAll.data ? '–' : compactMoney(sum(riderRows, 'riderOwesFuran'))} footer="Cash held beyond their earnings (after commission)" onClick={() => { setTab('riders'); setOwes('rider'); }} />
       </div>
 
       <Tabs value={tab} onChange={setTab} tabs={[{ value: 'vendors', label: 'Vendor balances', icon: Store }, { value: 'riders', label: 'Rider balances & COD', icon: Bike }, { value: 'settlements', label: 'Settlement history', icon: Receipt, count: settlements.total || undefined }]} />

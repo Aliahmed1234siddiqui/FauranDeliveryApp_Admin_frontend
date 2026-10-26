@@ -169,39 +169,86 @@ function RadiusSettings({ radius, onSaved }) {
   );
 }
 
-// PUT /admin/settings/commission { percent }
+const COMMISSION_RULES = { percent: { min: 0, max: 100 }, riderPercent: { min: 0, max: 100 } };
+
+// Rate input with a slider under it. `value` is the string being typed.
+function RateField({ label, hint, error, value, onChange }) {
+  return (
+    <div>
+      <Field label={label} error={error} hint={hint}>
+        {(id) => <Input id={id} type="number" min="0" max="100" step="0.5" suffix="%" value={value} onChange={(e) => onChange(e.target.value)} />}
+      </Field>
+      <input type="range" min="0" max="100" step="0.5" value={error ? 0 : Number(value)} onChange={(e) => onChange(e.target.value)} style={{ marginTop: 14 }} aria-label={label} />
+    </div>
+  );
+}
+
+// PUT /admin/settings/commission { percent, riderPercent } - only the fields that changed are sent.
 function CommissionSettings({ commission, onSaved }) {
-  const initial = String(commission?.percent ?? '');
-  const [percent, setPercent] = useState(initial);
-  const [sample, setSample] = useState('2500');
+  const [initial] = useState(() => toStrings({ percent: commission?.percent, riderPercent: commission?.riderPercent }));
+  const [form, setForm] = useState(initial);
+  const [sample, setSample] = useState({ subtotal: '2500', deliveryFee: '150' });
+  const [serverError, setServerError] = useState('');
   const [run, saving] = useAction();
-  const error = validateNumbers({ percent }, { percent: { min: 0, max: 100 } }).percent;
-  const value = error ? 0 : Number(percent);
-  const save = () => !error && run(() => settingsApi.updateCommission(percent), { success: `Commission set to ${value}%` }).then(onSaved).catch(() => {});
-  const subtotal = Number(sample) || 0;
-  const fee = Math.round((subtotal * value) / 100);
-  const changed = percent !== initial;
+  const errors = validateNumbers(form, COMMISSION_RULES);
+  const invalid = Object.keys(errors).length > 0;
+  const set = (k) => (v) => { setServerError(''); setForm((f) => ({ ...f, [k]: v })); };
+  const rate = (k) => (errors[k] ? 0 : Number(form[k]));
+  const changedKeys = Object.keys(COMMISSION_RULES).filter((k) => form[k] !== initial[k]);
+
+  const save = () => {
+    if (invalid || !changedKeys.length) return;
+    const payload = Object.fromEntries(changedKeys.map((k) => [k, form[k]]));
+    run(() => settingsApi.updateCommission(payload), { success: `Commission saved: vendor ${rate('percent')}% · rider ${rate('riderPercent')}%` })
+      .then(onSaved)
+      .catch((err) => setServerError(err.message)); // a 400 explains what was wrong
+  };
+
+  const subtotal = Number(sample.subtotal) || 0;
+  const deliveryFee = Number(sample.deliveryFee) || 0;
+  const vendorFee = Math.round((subtotal * rate('percent')) / 100);
+  const riderFee = Math.round((deliveryFee * rate('riderPercent')) / 100);
+  const setSampleKey = (k) => (e) => setSample((s) => ({ ...s, [k]: e.target.value }));
 
   return (
     <div className="stack">
       <div className="grid grid-2">
-        <Card title="Platform commission" subtitle="Fauran Mart's share of each order's product sales">
-          <Field label="Commission rate" error={error} hint="0–100%, decimals allowed.">
-            {(id) => <Input id={id} type="number" min="0" max="100" step="0.5" suffix="%" value={percent} onChange={(e) => setPercent(e.target.value)} />}
-          </Field>
-          <input type="range" min="0" max="100" step="0.5" value={value} onChange={(e) => setPercent(e.target.value)} style={{ marginTop: 14 }} aria-label="Commission rate" />
-          {changed && !error && <div className="callout callout-warning" style={{ marginTop: 14 }}><TriangleAlert size={16} /><div>Changes from <strong>{initial}%</strong> to <strong>{value}%</strong>. It applies to new orders only.</div></div>}
+        <Card title="Platform commission" subtitle="Fauran Mart's share of each order">
+          <div className="form-grid">
+            <RateField label="Vendor commission (% of products)" hint="0–100%, decimals allowed." value={form.percent} onChange={set('percent')} error={errors.percent} />
+            <RateField label="Rider commission (% of delivery fee)" hint="0–100%, decimals allowed." value={form.riderPercent} onChange={set('riderPercent')} error={errors.riderPercent} />
+          </div>
+          <p className="muted row" style={{ gap: 6, marginTop: 14, fontSize: 13 }}><Info size={14} /> Applies to new orders only.</p>
+          {changedKeys.length > 0 && !invalid && (
+            <div className="callout callout-warning" style={{ marginTop: 14 }}>
+              <TriangleAlert size={16} />
+              <div>
+                {changedKeys.map((k, i) => (
+                  <span key={k}>{i > 0 && ' '}{k === 'percent' ? 'Vendor' : 'Rider'} commission changes from <strong>{initial[k]}%</strong> to <strong>{rate(k)}%</strong>.</span>
+                ))}
+                {' '}Orders already placed keep the old rates.
+              </div>
+            </div>
+          )}
+          {serverError && <div className="callout callout-danger" style={{ marginTop: 14 }}><TriangleAlert size={16} /><div>{serverError}</div></div>}
         </Card>
-        <Card title="What a vendor gets" subtitle="Try an order value">
-          <Field label="Products subtotal">{(id) => <Input id={id} type="number" min="0" prefix="Rs." value={sample} onChange={(e) => setSample(e.target.value)} />}</Field>
+        <Card title="Who gets what" subtitle="Try an order value">
+          <div className="form-grid">
+            <Field label="Products subtotal">{(id) => <Input id={id} type="number" min="0" prefix="Rs." value={sample.subtotal} onChange={setSampleKey('subtotal')} />}</Field>
+            <Field label="Delivery fee">{(id) => <Input id={id} type="number" min="0" prefix="Rs." value={sample.deliveryFee} onChange={setSampleKey('deliveryFee')} />}</Field>
+          </div>
           <div className="totals" style={{ marginTop: 10 }}>
             <div><span>Products subtotal</span><span>{money(subtotal)}</span></div>
-            <div><span>Fauran Mart commission ({value}%)</span><span className="neg">− {money(fee)}</span></div>
-            <div className="grand"><span>Vendor payout</span><span>{money(subtotal - fee)}</span></div>
+            <div><span>Commission from vendor ({rate('percent')}%)</span><span className="neg">− {money(vendorFee)}</span></div>
+            <div className="grand"><span>Vendor gets</span><span>{money(subtotal - vendorFee)}</span></div>
+            <div><span>Delivery fee</span><span>{money(deliveryFee)}</span></div>
+            <div><span>Commission from rider ({rate('riderPercent')}%)</span><span className="neg">− {money(riderFee)}</span></div>
+            <div className="grand"><span>Rider gets</span><span>{money(deliveryFee - riderFee)}</span></div>
+            <div className="grand"><span>Fauran Mart total profit</span><span className="pos">{money(vendorFee + riderFee)}</span></div>
           </div>
         </Card>
       </div>
-      <SaveBar dirty={changed} blocked={!!error} saving={saving} onSave={save} onReset={() => setPercent(initial)} />
+      <SaveBar dirty={changedKeys.length > 0} blocked={invalid} saving={saving} onSave={save} onReset={() => { setForm(initial); setServerError(''); }} />
     </div>
   );
 }

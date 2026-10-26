@@ -49,8 +49,8 @@ export default function RiderDetail({ params }) {
             </p>
           </div>
           <div className="profile-actions">
-            {r.isOnline && location && <Button variant="secondary" icon={MapPin} onClick={() => navigate(`/riders/live?rider=${r._id}`)}>Locate</Button>}
-            {can('payments') && r.approvalStatus === 'approved' && <Button variant="secondary" icon={Landmark} onClick={() => navigate(`/payouts?tab=riders&ledger=${r._id}`)}>Ledger</Button>}
+            {r.isOnline && location && <Button variant="secondary" icon={MapPin} onClick={() => navigate(`/riders/live?rider=${r.riderId}`)}>Locate</Button>}
+            {can('payments') && r.approvalStatus === 'approved' && <Button variant="secondary" icon={Landmark} onClick={() => navigate(`/payouts?tab=riders&ledger=${r.riderId}`)}>Ledger</Button>}
             {r.approvalStatus !== 'pending' && <ChangeDecision status={r.approvalStatus} onDecide={decide} />}
             <BlockButton user={r} kind="rider" onDone={mergeRider} />
           </div>
@@ -111,7 +111,7 @@ function PerformanceCard({ stats }) {
       <div className="mini-stats">
         <div className="mini-stat"><span>Deliveries</span><strong>{num(stats.deliveries)}</strong></div>
         <div className="mini-stat"><span>Rating</span><strong className="row" style={{ gap: 4 }}>{stats.totalRatings ? stats.rating : '—'} {stats.totalRatings > 0 && <Star size={15} fill="var(--accent)" color="var(--accent)" />}</strong></div>
-        <div className="mini-stat"><span>Earnings</span><strong>{money(stats.totalEarnings)}</strong></div>
+        <div className="mini-stat"><span>Earnings (after commission)</span><strong>{money(stats.totalEarnings)}</strong></div>
         <div className="mini-stat"><span>Avg. delivery</span><strong>{stats.avgDeliveryMinutes ? `${Math.round(stats.avgDeliveryMinutes)} min` : '—'}</strong></div>
       </div>
       <div style={{ marginTop: 18 }}>

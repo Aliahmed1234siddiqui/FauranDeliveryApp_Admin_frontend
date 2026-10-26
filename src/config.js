@@ -16,6 +16,11 @@ export const API_BASE_URL = apiBase(import.meta.env.VITE_API_BASE_URL);
 export const SOCKET_URL = import.meta.env.VITE_SOCKET_URL
   || (/^https?:\/\//i.test(API_BASE_URL) ? new URL(API_BASE_URL).origin : window.location.origin);
 
+// Images and documents are full Cloudinary URLs. Records from before the move may still
+// hold '/uploads/...' paths, which the backend serves from its root (not under /api).
+const BACKEND_ORIGIN = /^https?:\/\//i.test(API_BASE_URL) ? new URL(API_BASE_URL).origin : '';
+export const fileUrl = (value) => (typeof value === 'string' && value.startsWith('/uploads/') ? `${BACKEND_ORIGIN}${value}` : value);
+
 // Rows per page on list screens. The backend allows up to 500.
 export const PAGE_SIZE = 20;
 

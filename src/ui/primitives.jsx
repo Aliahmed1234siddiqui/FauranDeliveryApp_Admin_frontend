@@ -1,5 +1,7 @@
 import { useId } from 'react';
 import { ArrowDownRight, ArrowUpRight, ChevronDown, Inbox, Loader2, Search, X } from 'lucide-react';
+import { fileUrl } from '../config';
+import { copyText } from '../lib/clipboard';
 import { initials } from '../lib/format';
 import { STATUS } from './status';
 
@@ -43,7 +45,7 @@ export function Avatar({ name = '', src, size = 'md', tone, square }) {
   const t = tone || AVATAR_TONES[[...name].reduce((s, c) => s + c.charCodeAt(0), 0) % AVATAR_TONES.length];
   return (
     <span className={cx('avatar', `avatar-${size}`, `avatar-${t}`, square && 'avatar-square')} aria-hidden="true">
-      {src ? <img src={src} alt="" /> : initials(name) || '?'}
+      {src ? <img src={fileUrl(src)} alt="" /> : initials(name) || '?'}
     </span>
   );
 }
@@ -252,6 +254,22 @@ export function Identity({ name, sub, avatar = true, square, onClick, icon }) {
   );
 }
 
-export function Code({ children }) {
-  return <code className="mono-chip">{children}</code>;
+// Mono chip for ids and references. Click (or Enter) copies the text; pass copy={false}
+// when the chip sits inside a link or button of its own.
+export function Code({ children, copy = true }) {
+  const text = typeof children === 'string' || typeof children === 'number' ? String(children) : '';
+  if (!copy || !text) return <code className="mono-chip">{children}</code>;
+  const onCopy = (e) => { e.stopPropagation(); e.preventDefault(); copyText(text); };
+  return (
+    <code
+      className="mono-chip is-copyable"
+      role="button"
+      tabIndex={0}
+      title="Click to copy"
+      onClick={onCopy}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onCopy(e); }}
+    >
+      {children}
+    </code>
+  );
 }

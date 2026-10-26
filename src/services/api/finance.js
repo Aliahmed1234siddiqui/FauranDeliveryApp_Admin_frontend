@@ -6,6 +6,7 @@
 //           balance = totalEarned - paidOut - cashInHand
 //           furanOwesRider = max(balance, 0) · riderOwesFuran = max(-balance, 0)
 // A rider can only be paid up to furanOwesRider, so record their cash deposit first.
+// A rider's totalEarned is after rider commission (delivery fees - Furan's cut).
 import { http } from '../http';
 
 export const SETTLEMENT_METHODS = ['bank_transfer', 'cash', 'easypaisa', 'jazzcash', 'other'];
