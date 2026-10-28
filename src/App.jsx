@@ -58,7 +58,7 @@ const ROUTES = [
   { path: '/categories', component: Categories, perm: ['catalog', 'products'], crumbs: ['Catalog', 'Categories'] },
   { path: '/master-catalog', component: MasterCatalog, perm: ['catalog', 'products'], crumbs: ['Catalog', 'Master catalog'] },
   { path: '/inventory', component: Inventory, perm: ['inventory'], crumbs: ['Catalog', 'Inventory'] },
-  { path: '/reports', component: Reports, perm: ['reports', 'inventory'], crumbs: ['Reports'] },
+  { path: '/reports', component: Reports, perm: ['reports'], crumbs: ['Reports'] },
   { path: '/employees', component: Employees, perm: ['employees'], crumbs: ['Administration', 'Employees'] },
   { path: '/settings', component: Settings, perm: ['settings'], crumbs: ['Administration', 'Settings'] },
   { path: '/profile', component: Profile, perm: [], crumbs: ['My profile'] },

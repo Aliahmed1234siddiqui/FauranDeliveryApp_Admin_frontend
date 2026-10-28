@@ -3,10 +3,36 @@ import { ArrowLeft, Ban, CalendarDays, Check, ExternalLink, FileText, ShieldChec
 import { Link } from '../lib/router';
 import { useAction } from '../lib/hooks';
 import { money } from '../lib/format';
+import { parentOf } from '../lib/categories';
 import { paymentsApi, usersApi } from '../services/api';
 import { Button, Card, EmptyState, Field, IconButton, Input, Skeleton } from '../ui/primitives';
 import { ConfirmDialog, Modal } from '../ui/overlays';
 import { fileUrl } from '../config';
+
+// Main category first, then one of its sub-categories. `value` is the sub-category _id.
+// Items saved in a main category before the sub-category rule still open with it preselected.
+export function CategoryPicker({ categories, value, onChange, error }) {
+  const current = categories.find((c) => c._id === value);
+  const [picked, setPicked] = useState(null);
+  const main = picked ?? (parentOf(current) || current?._id || '');
+  const mains = categories.filter((c) => !c.parentCategory);
+  const subs = categories.filter((c) => parentOf(c) === main);
+  const inMain = !!current && !parentOf(current);
+  const pickMain = (id) => { setPicked(id); onChange(''); };
+
+  return (
+    <>
+      <Field label="Category" required>
+        {(id) => <select id={id} className="input" value={main} onChange={(e) => pickMain(e.target.value)}><option value="">Select…</option>{mains.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}</select>}
+      </Field>
+      <Field label="Sub-category" required error={error} hint={inMain ? 'Saved in a main category. Pick a sub-category to move it.' : undefined}>
+        {(id) => (main && !subs.length
+          ? <Input id={id} value="No sub-categories yet" disabled />
+          : <select id={id} className="input" value={inMain ? '' : value} disabled={!main} onChange={(e) => onChange(e.target.value)}><option value="">{main ? 'Select…' : 'Pick a category first'}</option>{subs.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}</select>)}
+      </Field>
+    </>
+  );
+}
 
 export function BackLink({ to, children }) {
   return <Link to={to} className="back-link"><ArrowLeft size={15} /> {children}</Link>;

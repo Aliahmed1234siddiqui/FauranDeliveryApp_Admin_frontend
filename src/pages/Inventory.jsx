@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Boxes, CircleAlert, LineChart as TrendIcon, Package, PackageX, Tags, TriangleAlert, Wallet } from 'lucide-react';
+import { Boxes, CircleAlert, Package, PackageX, Tags, TriangleAlert, Wallet } from 'lucide-react';
 import { useQueryState, useRouter } from '../lib/router';
 import { useApi } from '../lib/hooks';
 import { useAuth } from '../lib/auth';
 import { inventoryApi } from '../services/api';
 import { compactMoney, money, num } from '../lib/format';
-import { Badge, Button, Card, EmptyState, ErrorState, Identity, Input, PageHeader, Progress, SearchInput, Segmented, Skeleton, StatCard } from '../ui/primitives';
+import { Badge, Card, EmptyState, ErrorState, Identity, Input, PageHeader, Progress, SearchInput, Segmented, Skeleton, StatCard } from '../ui/primitives';
 import DataTable from '../ui/DataTable';
 
 // Stock alert level. Empty means "use the server's default", which the response echoes back.
@@ -160,7 +160,6 @@ export default function Inventory() {
         actions={(
           <>
             <ThresholdInput key={threshold} value={threshold} fallback={data?.threshold} onChange={setThreshold} />
-            {can('reports', 'inventory') && <Button variant="secondary" icon={TrendIcon} onClick={() => navigate('/reports?tab=forecast')}>Demand forecast</Button>}
           </>
         )}
       />

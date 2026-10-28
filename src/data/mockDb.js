@@ -27,7 +27,7 @@ export const PERMISSIONS = [
   { key: 'products', label: 'Products', description: 'Vendor product listings and approvals' },
   { key: 'catalog', label: 'Catalog', description: 'Categories and the master product catalog' },
   { key: 'inventory', label: 'Inventory', description: 'Stock levels and low-stock alerts' },
-  { key: 'reports', label: 'Reports', description: 'Sales, revenue, vendor, rider and forecast reports' },
+  { key: 'reports', label: 'Reports', description: 'Sales, revenue, vendor and rider reports' },
   { key: 'settings', label: 'Settings', description: 'Delivery radius, commission and general settings' },
   { key: 'employees', label: 'Employees', description: 'Sub-admin accounts and their access' },
 ];

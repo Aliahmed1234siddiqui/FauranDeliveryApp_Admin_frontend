@@ -11,19 +11,13 @@ import { ConfirmDialog, Drawer, Menu } from '../ui/overlays';
 import DataTable, { Pagination } from '../ui/DataTable';
 import ImageUpload from '../ui/ImageUpload';
 import { fileUrl } from '../config';
+import { categoryOptions, isSubCategory } from '../lib/categories';
+import { CategoryPicker } from './shared';
 
 // Filter keys are sent to GET /admin/products as-is.
 const FILTERS = ['approval', 'isActive', 'stock', 'vendorId', 'category'];
 const EMPTY = { vendorId: '', masterProductId: '', name: '', category: '', description: '', unit: '', price: '', discountPrice: '', stock: '', isActive: true };
 const MASTER_FIELDS = ['name', 'category', 'description', 'unit'];
-
-// Top-level categories, each followed by its sub-categories.
-function categoryOptions(categories) {
-  return categories.filter((c) => !c.parentCategory).flatMap((top) => [
-    { value: top._id, label: top.name },
-    ...categories.filter((c) => c.parentCategory?._id === top._id).map((c) => ({ value: c._id, label: `— ${c.name}` })),
-  ]);
-}
 
 const masterIdOf = (p) => p?.masterProduct?._id || p?.masterProduct || '';
 
@@ -57,13 +51,14 @@ function toFields(form) {
   return fields;
 }
 
-function validate(form, isNew) {
+// `categoryOk`: a sub-category is picked, or the saved category is left as it is (it isn't sent then).
+function validate(form, isNew, categoryOk) {
   const err = {};
   const price = Number(form.price);
   if (isNew && !form.vendorId) err.vendorId = 'Choose the store selling this product';
   if (!form.masterProductId) {
     if (!form.name.trim()) err.name = 'Product name is required';
-    if (!form.category) err.category = 'Pick a category';
+    if (!categoryOk) err.category = 'Pick a sub-category';
   }
   if (!(price > 0)) err.price = 'Enter a selling price';
   if (form.discountPrice !== '' && !(Number(form.discountPrice) >= 0 && Number(form.discountPrice) < price)) err.discountPrice = 'Discount price must be lower than the price';
@@ -110,7 +105,8 @@ function ProductFormBody({ product, onClose, onSaved, vendors, categories }) {
 
   const submit = (e) => {
     e.preventDefault();
-    const err = validate(form, !product);
+    const categoryOk = product && form.category && form.category === initial.category ? true : isSubCategory(categories, form.category);
+    const err = validate(form, !product, categoryOk);
     setErrors(err);
     if (Object.keys(err).length) return;
     run(save, { success: product ? 'Product updated' : 'Product created' }).then(() => { onSaved(); onClose(); }).catch(() => {});
@@ -154,7 +150,7 @@ function ProductFormBody({ product, onClose, onSaved, vendors, categories }) {
             <div className="form-section-title">Details</div>
             <div className="form-grid" style={{ marginTop: 12 }}>
               <Field label="Product name" required error={errors.name} className="span-2">{(id) => <Input id={id} value={form.name} onChange={set('name')} placeholder="e.g. Olpers Full Cream Milk" />}</Field>
-              <Field label="Category" required error={errors.category}>{(id) => <select id={id} className="input" value={form.category} onChange={set('category')}><option value="">Select…</option>{categoryOptions(categories).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select>}</Field>
+              <CategoryPicker categories={categories} value={form.category} onChange={set('category')} error={errors.category} />
               <Field label="Unit / pack size">{(id) => <Input id={id} value={form.unit} onChange={set('unit')} placeholder="1 L, 500 g, 12 pcs" />}</Field>
               <Field label="Description" className="span-2">{(id) => <textarea id={id} className="input textarea" rows={3} value={form.description} onChange={set('description')} placeholder="Short description shown in the customer app" />}</Field>
             </div>

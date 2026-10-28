@@ -72,12 +72,7 @@ export const reportsApi = {
    */
   riders: (params) => http.get('/admin/reports/riders', params),
 
-  /**
-   * GET /admin/reports/forecast { days=30, horizonDays=7, limit=20, vendorId }   🔒 reports | inventory
-   * → [{ productId (_id), name, storeName, unitsSold, orders, avgDailyDemand, forecastUnits,
-   *      currentStock, daysOfStockLeft | null, suggestedRestock, needsRestock }]
-   */
-  forecast: (params) => http.get('/admin/reports/forecast', params),
+  // GET /admin/reports/forecast was removed from the backend (returns in FYP-2).
 };
 
 export const settingsApi = {

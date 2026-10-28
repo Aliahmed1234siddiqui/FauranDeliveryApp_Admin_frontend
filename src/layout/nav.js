@@ -35,7 +35,7 @@ export const NAV = [
   },
   {
     label: 'Insights',
-    items: [{ to: '/reports', label: 'Reports', icon: ChartColumnBig, perm: ['reports', 'inventory'] }],
+    items: [{ to: '/reports', label: 'Reports', icon: ChartColumnBig, perm: ['reports'] }],
   },
   {
     label: 'Administration',

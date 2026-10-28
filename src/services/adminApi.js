@@ -333,18 +333,6 @@ export const adminApi = {
   }) : http.get('/admin/reports/revenue', params),
   getVendorReport: (params) => USE_MOCK ? mock(() => db.vendors.filter((v) => v.approvalStatus === 'approved').map((v) => ({ vendor: { _id: v._id, vendorId: v.vendorId, storeName: v.storeName, storeType: v.storeType }, orders: v.totalOrders, gmv: v.grossSales, commission: Math.round(v.grossSales * v.commissionPercent / 100), rating: v.rating, fulfilmentRate: v.fulfilmentRate, avgPrepMinutes: v.avgPrepMinutes, cancellations: Math.round(v.totalOrders * 0.018) })).sort((a, b) => b.gmv - a.gmv)) : http.get('/admin/reports/vendors', params),
   getRiderReport: (params) => USE_MOCK ? mock(() => db.riders.filter((r) => r.approvalStatus === 'approved').map((r) => ({ rider: { _id: r._id, riderId: r.riderId, name: r.name, zone: r.zone }, deliveries: r.totalDeliveries, onTimeRate: r.onTimeRate, rating: r.rating, avgDeliveryMin: 8 + (r.totalDeliveries % 7), earnings: r.totalDeliveries * 85, codCollected: r.totalDeliveries * 1240 })).sort((a, b) => b.deliveries - a.deliveries)) : http.get('/admin/reports/riders', params),
-  getForecast: (params) => USE_MOCK ? mock(() => {
-    const history = salesSeries(21).map((d) => ({ date: d.date, actual: d.orders }));
-    const last = history[history.length - 1].actual;
-    const forecast = Array.from({ length: 14 }, (_, i) => {
-      const d = new Date('2026-10-13T00:00:00');
-      d.setDate(d.getDate() + i + 1);
-      const predicted = Math.round(last + i * 11 + Math.sin(i / 2) * 60 + ([5, 6].includes(d.getDay()) ? 150 : 0));
-      return { date: d.toISOString().slice(0, 10), predicted, low: Math.round(predicted * 0.9), high: Math.round(predicted * 1.1) };
-    });
-    const atRisk = db.products.filter((p) => p.soldLast30d > 0).map((p) => ({ product: { productId: p.productId, name: p.name, icon: p.icon }, vendor: p.vendor, stock: p.stock, dailyDemand: +(p.soldLast30d / 30).toFixed(1), daysOfCover: p.soldLast30d ? +(p.stock / (p.soldLast30d / 30)).toFixed(1) : 99, suggestedReorder: Math.max(0, Math.round((p.soldLast30d / 30) * 14 - p.stock)) })).filter((p) => p.daysOfCover < 7).sort((a, b) => a.daysOfCover - b.daysOfCover).slice(0, 10);
-    return { history, forecast, atRisk, model: { name: 'Seasonal moving average', accuracy: 92.4, horizonDays: 14 } };
-  }) : http.get('/admin/reports/forecast', params),
 
   // ---------- settings ----------
   getSettings: () => (USE_MOCK ? mock(() => db.settings) : http.get('/admin/settings')),

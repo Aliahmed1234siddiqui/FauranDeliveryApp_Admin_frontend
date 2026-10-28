@@ -12,17 +12,11 @@ import { ConfirmDialog, Drawer, Menu, Modal } from '../ui/overlays';
 import DataTable, { Pagination } from '../ui/DataTable';
 import ImageUpload from '../ui/ImageUpload';
 import { fileUrl } from '../config';
+import { categoryOptions, isSubCategory } from '../lib/categories';
+import { CategoryPicker } from './shared';
 
 const FILTERS = ['category', 'isActive'];
 const EMPTY = { name: '', category: '', brand: '', unit: '', barcode: '', description: '', tags: '', suggestedPrice: '', isActive: true };
-
-// Top-level categories, each followed by its sub-categories. Items sit in either.
-function categoryOptions(categories) {
-  return categories.filter((c) => !c.parentCategory).flatMap((top) => [
-    { value: top._id, label: top.name },
-    ...categories.filter((c) => c.parentCategory?._id === top._id).map((c) => ({ value: c._id, label: `— ${c.name}` })),
-  ]);
-}
 
 const thumb = (m) => (m.images?.[0] ? <img src={fileUrl(m.images[0])} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 10 }} /> : undefined);
 const priceRange = (r) => (!r ? '—' : r.min === r.max ? money(r.min) : `${money(r.min)} – ${money(r.max)}`);
@@ -107,7 +101,7 @@ function BulkImportBody({ onClose, onDone }) {
       size="lg"
       icon={FileSpreadsheet}
       title="Bulk import master items"
-      description="Paste CSV or rows from a spreadsheet, or upload a file. Columns: name, brand, categoryName (or category id), unit, suggestedPrice, barcode, description, tags. Separate several tags with |."
+      description="Paste CSV or rows from a spreadsheet, or upload a file. Columns: name, brand, categoryName (a sub-category name, or its id), unit, suggestedPrice, barcode, description, tags. Separate several tags with |."
       footer={(
         <>
           <span className="muted" style={{ marginRight: 'auto', fontSize: 13 }}>
@@ -171,17 +165,20 @@ function MasterForm(props) {
 }
 
 function MasterFormBody({ item, categories, onClose, onSaved }) {
+  const [initialCategory] = useState(() => toForm(item, categories).category);
   const [form, setForm] = useState(() => toForm(item, categories));
   const [files, setFiles] = useState([]);
   const [errors, setErrors] = useState({});
   const [run, pending] = useAction();
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e?.target ? e.target.value : e }));
+  // An unchanged category isn't sent, so items saved in a main category can still be edited.
+  const keepCategory = !!item && !!form.category && form.category === initialCategory;
   const submit = (e) => {
     e.preventDefault();
     const err = {};
     if (!form.name.trim()) err.name = 'Name is required';
-    if (!form.category) err.category = 'Pick a category';
+    if (!keepCategory && !isSubCategory(categories, form.category)) err.category = 'Pick a sub-category';
     if (form.suggestedPrice !== '' && !(Number(form.suggestedPrice) >= 0)) err.suggestedPrice = 'Enter a valid price';
     setErrors(err);
     if (Object.keys(err).length) return;
@@ -197,6 +194,7 @@ function MasterFormBody({ item, categories, onClose, onSaved }) {
       isActive: form.isActive,
       images: files, // only sent when files were picked; they replace the saved ones
     };
+    if (keepCategory) delete payload.category;
     if (!item) {
       run(() => masterCatalogApi.create(payload), { success: 'Added to the master catalog' }).then(() => { onSaved(); onClose(); }).catch(() => {});
       return;
@@ -221,7 +219,7 @@ function MasterFormBody({ item, categories, onClose, onSaved }) {
         <Field label="Product name" required error={errors.name} className="span-2">{(id) => <Input id={id} value={form.name} onChange={set('name')} placeholder="e.g. Nestlé Milkpak UHT Milk" />}</Field>
         <Field label="Brand">{(id) => <Input id={id} value={form.brand} onChange={set('brand')} placeholder="Nestlé" />}</Field>
         <Field label="Unit / pack size">{(id) => <Input id={id} value={form.unit} onChange={set('unit')} placeholder="1 L" />}</Field>
-        <Field label="Category" required error={errors.category} hint="A category or one of its sub-categories">{(id) => <select id={id} className="input" value={form.category} onChange={set('category')}><option value="">Select…</option>{categoryOptions(categories).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select>}</Field>
+        <CategoryPicker categories={categories} value={form.category} onChange={set('category')} error={errors.category} />
         <Field label="Suggested price" error={errors.suggestedPrice} hint="Shown to stores as a starting price">{(id) => <Input id={id} type="number" min="0" prefix="Rs." value={form.suggestedPrice} onChange={set('suggestedPrice')} />}</Field>
         <Field label="Barcode (EAN)">{(id) => <Input id={id} value={form.barcode} onChange={set('barcode')} placeholder="8964000123456" />}</Field>
         <Field label="Tags" hint="Comma separated, helps search">{(id) => <Input id={id} value={form.tags} onChange={set('tags')} placeholder="milk, dairy, uht" />}</Field>
@@ -344,7 +342,9 @@ function TreeView({ search, isActive, onOpen }) {
               </button>
               {isOpen && (
                 <div className="tree-children">
-                  {(cat.items.length > 0 || !cat.subCategories.length) && <div className="tree-sub"><div className="tree-sub-title">Directly in {cat.name}</div><TreeItems items={cat.items} onOpen={onOpen} /></div>}
+                  {/* Items saved in a main category before sub-categories were required. */}
+                  {cat.items.length > 0 && <div className="tree-sub"><div className="tree-sub-title">Directly in {cat.name} <Badge tone="warning">Move to a sub-category</Badge></div><TreeItems items={cat.items} onOpen={onOpen} /></div>}
+                  {!cat.subCategories.length && <span className="muted" style={{ fontSize: 12.5 }}>No sub-categories yet</span>}
                   {cat.subCategories.map((s) => <TreeSub key={s._id} node={s} onOpen={onOpen} />)}
                 </div>
               )}
